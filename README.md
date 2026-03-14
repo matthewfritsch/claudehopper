@@ -11,8 +11,13 @@ Tools like [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode), 
 ## Install
 
 ```bash
-cd ~/Programming/claude-swap
-pip install -e .
+# Via uv (recommended)
+uv tool install claude-swap
+
+# Or from source
+git clone https://github.com/you/claude-swap.git
+cd claude-swap
+uv pip install -e . --system
 ```
 
 ## Quick start
@@ -40,11 +45,15 @@ ccswap
 | `ccswap list` | List all profiles |
 | `ccswap create <name>` | Create a profile (`--from-current`, `--from-profile`, or blank) |
 | `ccswap switch <name>` | Activate a profile (symlinks managed paths) |
-| `ccswap pick <source> <path...>` | Cherry-pick files from one profile into another |
+| `ccswap pick <source> <path...>` | Copy files from one profile into another |
+| `ccswap share <source> <path...>` | Symlink files from one profile into another (stays in sync) |
+| `ccswap unshare [path...]` | Convert shared symlinks back to independent copies |
 | `ccswap diff <a> <b>` | Compare what two profiles contain |
 | `ccswap delete <name>` | Remove a profile |
 | `ccswap unmanage` | Materialize symlinks back to real files, stop managing |
 | `ccswap path <name>` | Print the profile directory path |
+
+Most destructive commands support `--dry-run` / `-n` to preview changes without executing them.
 
 ## How it works
 
@@ -67,18 +76,22 @@ Profiles live in `~/.claude-swap/profiles/<name>/`. When you switch:
 | `hooks/` | Via plugin | 4 scripts | 7 (workspace) | 15 (symlinked) |
 | `plugins/` | OMC plugin | None | None | None |
 
-## Cherry-picking between profiles
+## Sharing and cherry-picking between profiles
 
-Want GSD's commands in your OMC setup? Pick them:
+**Pick** (copy) — independent copy, changes don't sync:
 
 ```bash
 ccswap pick gsd commands/gsd --target omc
 ```
 
-Want to try a profile's agents without fully switching:
+**Share** (symlink) — both profiles see the same files, edits sync automatically:
 
 ```bash
-ccswap pick forge agents --target omc
+# Share GSD's commands into your OMC profile
+ccswap share gsd commands/gsd --target omc
+
+# Later, make them independent again
+ccswap unshare commands/gsd
 ```
 
 ## Naming candidates
