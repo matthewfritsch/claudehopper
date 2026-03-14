@@ -1,6 +1,6 @@
 # claudehopper
 
-Switch between Claude Code configuration profiles instantly. Keep separate setups for work, personal projects, or different AI behaviors — and hop between them with a single command.
+Switch between Claude Code configuration profiles. Run Oh-my-claudecode one session, vanilla the next, GSD for a sprint — without blowing away your setup each time. Share what you want between profiles, but keep other files separate.
 
 ## The Problem
 
