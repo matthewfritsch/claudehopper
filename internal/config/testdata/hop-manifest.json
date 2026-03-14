@@ -1,0 +1,8 @@
+{
+  "managed_paths": [
+    "agents",
+    "settings.json"
+  ],
+  "shared_paths": {},
+  "description": "get-shit-done spec-driven development"
+}
