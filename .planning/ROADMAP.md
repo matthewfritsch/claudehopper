@@ -23,13 +23,19 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal**: A compilable, testable Go module exists with the load-bearing infrastructure that all profile operations depend on
 **Depends on**: Nothing (first phase)
 **Requirements**: SAFE-01, SAFE-03, DIST-02, DIST-04
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Go module scaffold, Cobra CLI skeleton, and dual-binary build tooling
+- [ ] 01-02-PLAN.md — Atomic symlink engine and protected-paths enforcement
+- [ ] 01-03-PLAN.md — Config path resolution and Python-compatible JSON serialization
+
 **Success Criteria** (what must be TRUE):
   1. `hop --help` and `claudehopper --help` both print usage from a single compiled binary
   2. `hop --version` prints a version string (not `(devel)`)
   3. `internal/fs.AtomicSymlink()` creates and replaces symlinks without ever leaving a broken state mid-operation, verified by tests using t.TempDir()
   4. Protected paths (credentials, history, projects, cache) are enforced by `internal/fs.IsProtected()` and match the Python version's constants exactly, verified by a fixture test
   5. Config path resolves correctly under both default `~/.config/claudehopper/` and `XDG_CONFIG_HOME` override, with no tilde strings stored anywhere
-**Plans**: TBD
 
 ### Phase 2: Core Profile Operations
 **Goal**: An existing Python claudehopper user can migrate and perform all daily profile management tasks with the Go binary
@@ -71,7 +77,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/3 | Planning complete | - |
 | 2. Core Profile Operations | 0/TBD | Not started | - |
 | 3. Extended Features | 0/TBD | Not started | - |
 | 4. Polish & Distribution | 0/TBD | Not started | - |
