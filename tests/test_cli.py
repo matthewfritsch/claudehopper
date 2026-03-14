@@ -573,5 +573,264 @@ class TestPathCommand(ClaudeHopperTestCase):
             cli.cmd_path(path_args)
 
 
+class TestUsageRecording(ClaudeHopperTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self._patchers.append(
+            mock.patch.object(cli, "USAGE_FILE", self.hopper_dir / "usage.jsonl")
+        )
+        self._patchers[-1].start()
+
+    def test_record_usage_creates_file(self):
+        self.hopper_dir.mkdir(parents=True, exist_ok=True)
+        cli.record_usage("omc", "switch")
+        usage_file = self.hopper_dir / "usage.jsonl"
+        self.assertTrue(usage_file.exists())
+        lines = usage_file.read_text().splitlines()
+        self.assertEqual(len(lines), 1)
+        entry = json.loads(lines[0])
+        self.assertEqual(entry["profile"], "omc")
+        self.assertEqual(entry["action"], "switch")
+        self.assertIn("timestamp", entry)
+
+    def test_record_usage_appends(self):
+        self.hopper_dir.mkdir(parents=True, exist_ok=True)
+        cli.record_usage("omc", "switch")
+        cli.record_usage("gsd", "create")
+        cli.record_usage("omc", "switch")
+        usage_file = self.hopper_dir / "usage.jsonl"
+        lines = usage_file.read_text().splitlines()
+        self.assertEqual(len(lines), 3)
+        self.assertEqual(json.loads(lines[0])["profile"], "omc")
+        self.assertEqual(json.loads(lines[1])["profile"], "gsd")
+        self.assertEqual(json.loads(lines[2])["action"], "switch")
+
+    def test_record_usage_on_switch(self):
+        self._populate_claude_dir()
+        args = mock.Mock(from_current=True, from_profile=None,
+                         description="", activate=False)
+        args.name = "p1"
+        cli.cmd_create(args)
+        cli._do_switch("p1", force=True)
+
+        usage_file = self.hopper_dir / "usage.jsonl"
+        self.assertTrue(usage_file.exists())
+        entries = [json.loads(l) for l in usage_file.read_text().splitlines()]
+        switch_entries = [e for e in entries if e["action"] == "switch"]
+        self.assertTrue(len(switch_entries) >= 1)
+        self.assertEqual(switch_entries[-1]["profile"], "p1")
+
+    def test_record_usage_on_create(self):
+        args = mock.Mock(from_current=False, from_profile=None,
+                         description="", activate=False)
+        args.name = "myprof"
+        cli.cmd_create(args)
+
+        usage_file = self.hopper_dir / "usage.jsonl"
+        self.assertTrue(usage_file.exists())
+        entries = [json.loads(l) for l in usage_file.read_text().splitlines()]
+        create_entries = [e for e in entries if e["action"] == "create"]
+        self.assertEqual(len(create_entries), 1)
+        self.assertEqual(create_entries[0]["profile"], "myprof")
+
+    def test_record_usage_not_on_dry_run(self):
+        self._populate_claude_dir()
+        args = mock.Mock(from_current=True, from_profile=None,
+                         description="", activate=False)
+        args.name = "p1"
+        cli.cmd_create(args)
+
+        # Clear any usage recorded during create
+        usage_file = self.hopper_dir / "usage.jsonl"
+        usage_file.write_text("")
+
+        cli._do_switch("p1", force=True, dry_run=True)
+
+        switch_entries = [
+            json.loads(l) for l in usage_file.read_text().splitlines() if l.strip()
+            if json.loads(l)["action"] == "switch"
+        ]
+        self.assertEqual(len(switch_entries), 0)
+
+
+class TestStats(ClaudeHopperTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self._patchers.append(
+            mock.patch.object(cli, "USAGE_FILE", self.hopper_dir / "usage.jsonl")
+        )
+        self._patchers[-1].start()
+        self.usage_file = self.hopper_dir / "usage.jsonl"
+
+    def _write_entries(self, entries):
+        self.hopper_dir.mkdir(parents=True, exist_ok=True)
+        with self.usage_file.open("w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+    def test_stats_empty(self):
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            stats_args = mock.Mock(profile=None, since=None)
+            stats_args.json = False
+            cli.cmd_stats(stats_args)
+        self.assertIn("No usage data yet", buf.getvalue())
+
+    def test_stats_with_data(self):
+        import io
+        from contextlib import redirect_stdout
+        self._write_entries([
+            {"profile": "omc", "timestamp": "2026-03-01T10:00:00", "action": "switch"},
+            {"profile": "omc", "timestamp": "2026-03-02T10:00:00", "action": "switch"},
+            {"profile": "gsd", "timestamp": "2026-03-03T10:00:00", "action": "switch"},
+        ])
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            stats_args = mock.Mock(profile=None, since=None)
+            stats_args.json = False
+            cli.cmd_stats(stats_args)
+        output = buf.getvalue()
+        self.assertIn("omc", output)
+        self.assertIn("gsd", output)
+        self.assertIn("3 switches", output)  # total
+
+    def test_stats_profile_filter(self):
+        import io
+        from contextlib import redirect_stdout
+        self._write_entries([
+            {"profile": "omc", "timestamp": "2026-03-01T10:00:00", "action": "switch"},
+            {"profile": "omc", "timestamp": "2026-03-02T10:00:00", "action": "switch"},
+            {"profile": "gsd", "timestamp": "2026-03-03T10:00:00", "action": "switch"},
+        ])
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            stats_args = mock.Mock(profile="omc", since=None)
+            stats_args.json = False
+            cli.cmd_stats(stats_args)
+        output = buf.getvalue()
+        self.assertIn("omc", output)
+        self.assertNotIn("gsd", output)
+
+    def test_stats_json_output(self):
+        self._write_entries([
+            {"profile": "omc", "timestamp": "2026-03-01T10:00:00", "action": "switch"},
+            {"profile": "omc", "timestamp": "2026-03-02T10:00:00", "action": "switch"},
+            {"profile": "gsd", "timestamp": "2026-03-03T10:00:00", "action": "switch"},
+        ])
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            stats_args = mock.Mock(profile=None, since=None)
+            stats_args.json = True
+            cli.cmd_stats(stats_args)
+        result = json.loads(buf.getvalue())
+        self.assertIn("profiles", result)
+        self.assertIn("total", result)
+        self.assertEqual(result["total"], 3)
+        names = [p["name"] for p in result["profiles"]]
+        self.assertIn("omc", names)
+        self.assertIn("gsd", names)
+        omc = next(p for p in result["profiles"] if p["name"] == "omc")
+        self.assertEqual(omc["switches"], 2)
+
+
+
+class TestTree(ClaudeHopperTestCase):
+
+    def _capture_tree(self, json_flag=False):
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        args = mock.Mock()
+        args.json = json_flag
+        with redirect_stdout(buf):
+            cli.cmd_tree(args)
+        return buf.getvalue()
+
+    def _make_profile(self, name, description=""):
+        args = mock.Mock(from_current=False, from_profile=None,
+                         description=description, activate=False)
+        args.name = name
+        cli.cmd_create(args)
+
+    def test_tree_no_profiles(self):
+        output = self._capture_tree()
+        self.assertIn("No profiles", output)
+        self.assertIn("claudehopper create", output)
+
+    def test_tree_single_profile(self):
+        self._make_profile("vanilla")
+        output = self._capture_tree()
+        self.assertIn("claudehopper profiles", output)
+        self.assertIn("vanilla", output)
+        self.assertIn("settings.json", output)
+
+    def test_tree_multiple_profiles(self):
+        self._make_profile("alpha")
+        self._make_profile("beta")
+        cli._do_switch("alpha", force=True)
+        output = self._capture_tree()
+        self.assertIn("alpha (active)", output)
+        self.assertIn("beta", output)
+        self.assertNotIn("beta (active)", output)
+
+    def test_tree_with_shared_paths(self):
+        self._make_profile("owner")
+        self._make_profile("consumer")
+        share_args = mock.Mock(source="owner", paths=["settings.json"],
+                               target="consumer", dry_run=False)
+        cli.cmd_share(share_args)
+        output = self._capture_tree()
+        self.assertIn("shared from owner", output)
+        self.assertIn("Shared links:", output)
+        self.assertIn("consumer/settings.json", output)
+
+    def test_tree_with_lineage(self):
+        self._make_profile("parent")
+        clone_args = mock.Mock(from_current=False, from_profile="parent",
+                               description="child profile", activate=False)
+        clone_args.name = "child"
+        cli.cmd_create(clone_args)
+        output = self._capture_tree()
+        # child should appear indented under parent
+        lines = output.splitlines()
+        parent_idx = next(i for i, l in enumerate(lines) if "parent" in l)
+        child_idx = next(i for i, l in enumerate(lines) if "child" in l)
+        self.assertGreater(child_idx, parent_idx)
+        child_line = lines[child_idx]
+        # child line should be indented (has leading spaces or box chars before name)
+        self.assertTrue(child_line.startswith(" ") or child_line.startswith("│"))
+
+    def test_tree_json_output(self):
+        import io
+        from contextlib import redirect_stdout
+        self._make_profile("omc", description="my omc profile")
+        self._make_profile("vanilla")
+        cli._do_switch("omc", force=True)
+        output = self._capture_tree(json_flag=True)
+        result = json.loads(output)
+        self.assertIn("profiles", result)
+        names = [p["name"] for p in result["profiles"]]
+        self.assertIn("omc", names)
+        self.assertIn("vanilla", names)
+        omc = next(p for p in result["profiles"] if p["name"] == "omc")
+        self.assertTrue(omc["active"])
+        self.assertEqual(omc["description"], "my omc profile")
+        self.assertIn("managed_paths", omc)
+        self.assertIn("shared_paths", omc)
+        self.assertIn("created_from", omc)
+        vanilla = next(p for p in result["profiles"] if p["name"] == "vanilla")
+        self.assertFalse(vanilla["active"])
+
+    def test_tree_no_profiles_json(self):
+        output = self._capture_tree(json_flag=True)
+        result = json.loads(output)
+        self.assertEqual(result, {"profiles": []})
+
 if __name__ == "__main__":
     unittest.main()

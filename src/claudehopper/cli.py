@@ -7,6 +7,7 @@ Shared files (credentials, history, projects, cache) are never touched.
 """
 
 import argparse
+import datetime
 import json
 import os
 import shutil
@@ -27,6 +28,8 @@ LEGACY_BACKUP_SUFFIX = ".ccswap-backup"
 MANIFEST_NAME = ".hop-manifest.json"
 BACKUP_SUFFIX = ".hop-backup"
 
+USAGE_FILE = HOPPER_DIR / "usage.jsonl"
+
 # These belong to Claude Code itself — never profile-managed
 SHARED_PATHS = {
     ".credentials.json",
@@ -46,6 +49,21 @@ SHARED_PATHS = {
 def die(msg: str):
     print(f"error: {msg}", file=sys.stderr)
     sys.exit(1)
+
+
+def record_usage(profile: str, action: str):
+    """Append a usage record to USAGE_FILE. Never raises."""
+    try:
+        HOPPER_DIR.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "profile": profile,
+            "timestamp": datetime.datetime.now().isoformat(),
+            "action": action,
+        }
+        with USAGE_FILE.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as e:
+        print(f"warning: could not record usage: {e}", file=sys.stderr)
 
 
 def load_config() -> dict:
@@ -488,6 +506,8 @@ def cmd_create(args):
         manifest["created_from"] = created_from
         (pdir / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2) + "\n")
 
+    record_usage(name, "create")
+
 
 def _do_switch(name: str, force: bool = False, dry_run: bool = False):
     """Core switch logic. Validates everything before touching any files."""
@@ -534,6 +554,7 @@ def _do_switch(name: str, force: bool = False, dry_run: bool = False):
     config["active"] = name
     save_config(config)
     print(f"Switched to '{name}' ({linked} paths linked)")
+    record_usage(name, "switch")
 
 
 def cmd_switch(args):
@@ -602,6 +623,8 @@ def cmd_pick(args):
         if target_name == config.get("active"):
             _do_switch(target_name, force=True)
 
+        record_usage(args.source, "pick")
+
 
 def cmd_share(args):
     """Share files from one profile into another via symlinks."""
@@ -662,6 +685,8 @@ def cmd_share(args):
 
         if target_name == config.get("active"):
             _do_switch(target_name, force=True)
+
+        record_usage(args.source, "share")
 
 
 def cmd_unshare(args):
@@ -791,6 +816,7 @@ def cmd_delete(args):
 
     shutil.rmtree(pdir)
     print(f"Deleted profile '{args.name}'")
+    record_usage(args.name, "delete")
 
 
 def cmd_unmanage(args):
@@ -832,6 +858,207 @@ def cmd_path(args):
     """Print the path to a profile directory."""
     pdir = require_profile(args.name)
     print(pdir)
+
+
+def _relative_time(ts: str) -> str:
+    """Return a human-readable relative time string for an ISO timestamp."""
+    try:
+        then = datetime.datetime.fromisoformat(ts)
+        now = datetime.datetime.now()
+        delta = now - then
+        seconds = int(delta.total_seconds())
+        if seconds < 3600:
+            return f"{max(1, seconds // 60)}m ago"
+        elif seconds < 86400:
+            return f"{seconds // 3600}h ago"
+        elif seconds < 7 * 86400:
+            return f"{seconds // 86400}d ago"
+        else:
+            return f"{seconds // (7 * 86400)}w ago"
+    except Exception:
+        return ts
+
+
+def cmd_stats(args):
+    """Show profile usage statistics."""
+    if not USAGE_FILE.exists():
+        print("No usage data yet.")
+        return
+
+    lines = USAGE_FILE.read_text().splitlines()
+    entries = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entries.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    # Apply --since filter
+    if args.since:
+        raw = args.since
+        if "T" not in raw:
+            raw += "T00:00:00"
+        try:
+            since_dt = datetime.datetime.fromisoformat(raw)
+        except ValueError:
+            die(f"invalid --since date: {args.since!r} (expected YYYY-MM-DD or ISO format)")
+        entries = [
+            e for e in entries
+            if "timestamp" in e
+            and datetime.datetime.fromisoformat(e["timestamp"]) >= since_dt
+        ]
+
+    # Apply --profile filter
+    if args.profile:
+        entries = [e for e in entries if e["profile"] == args.profile]
+
+    if not entries:
+        print("No usage data yet.")
+        return
+
+    # Aggregate per profile
+    profile_data: dict[str, dict] = {}
+    for entry in entries:
+        pname = entry["profile"]
+        action = entry["action"]
+        ts = entry["timestamp"]
+        if pname not in profile_data:
+            profile_data[pname] = {"switches": 0, "last_used": ts, "actions": {}}
+        pd = profile_data[pname]
+        pd["actions"][action] = pd["actions"].get(action, 0) + 1
+        if action == "switch":
+            pd["switches"] += 1
+        if ts > pd["last_used"]:
+            pd["last_used"] = ts
+
+    total_switches = sum(pd["switches"] for pd in profile_data.values())
+
+    if getattr(args, "json", False):
+        result = {
+            "profiles": [
+                {
+                    "name": name,
+                    "switches": pd["switches"],
+                    "last_used": pd["last_used"],
+                    "actions": pd["actions"],
+                }
+                for name, pd in sorted(profile_data.items(), key=lambda x: -x[1]["switches"])
+            ],
+            "total": total_switches,
+        }
+        print(json.dumps(result))
+        return
+
+    # Human-readable output
+    print("Profile usage (all time):")
+    max_len = max(len(name) for name in profile_data)
+    for name, pd in sorted(profile_data.items(), key=lambda x: -x[1]["switches"]):
+        last = _relative_time(pd["last_used"])
+        switches = pd["switches"]
+        print(f"  {name:<{max_len}}  {switches:>3} switches  (last: {last})")
+
+    print(f"\nTotal: {total_switches} switches across {len(profile_data)} profiles")
+
+
+def cmd_tree(args):
+    """Show all profiles in a tree structure."""
+    use_json = getattr(args, "json", False)
+
+    config = load_config()
+    active = config.get("active")
+
+    if not PROFILES_DIR.exists():
+        if use_json:
+            print(json.dumps({"profiles": []}, indent=2))
+        else:
+            print("No profiles. Run 'claudehopper create <name>' to create one.")
+        return
+
+    profile_names = sorted(d.name for d in PROFILES_DIR.iterdir() if d.is_dir())
+    if not profile_names:
+        if use_json:
+            print(json.dumps({"profiles": []}, indent=2))
+        else:
+            print("No profiles. Run 'claudehopper create <name>' to create one.")
+        return
+
+    # Load all profile data
+    profiles_data = {}
+    for name in profile_names:
+        pdir = profile_dir(name)
+        manifest = load_manifest(pdir)
+        profiles_data[name] = {
+            "name": name,
+            "active": name == active,
+            "managed_paths": manifest.get("managed_paths", []),
+            "shared_paths": manifest.get("shared_paths", {}),
+            "created_from": manifest.get("created_from"),
+            "description": manifest.get("description", ""),
+        }
+
+    if use_json:
+        print(json.dumps({"profiles": list(profiles_data.values())}, indent=2))
+        return
+
+    # Build lineage tree: map parent -> list of children
+    # Only treat created_from as parent if it names a known profile
+    children_of = {name: [] for name in profile_names}
+    root_profiles = []
+    for name in profile_names:
+        parent = profiles_data[name]["created_from"]
+        if parent and parent in profiles_data:
+            children_of[parent].append(name)
+        else:
+            root_profiles.append(name)
+
+    # Collect all shared links across profiles for summary section
+    all_shared_links = []
+    for name in profile_names:
+        for path, src in profiles_data[name]["shared_paths"].items():
+            all_shared_links.append((name, path, src))
+
+    print("claudehopper profiles")
+
+    visited = set()
+
+    def render_profile(name, prefix, connector):
+        """Render a profile and its children recursively."""
+        if name in visited:
+            return
+        visited.add(name)
+        data = profiles_data[name]
+        active_marker = " (active)" if data["active"] else ""
+        print(f"{prefix}{connector}{name}{active_marker}")
+
+        child_prefix = prefix + ("│   " if connector == "├── " else "    ")
+        managed = sorted(data["managed_paths"])
+        shared = data["shared_paths"]
+        children = children_of[name]
+
+        for i, path in enumerate(managed):
+            is_last_item = (i == len(managed) - 1) and not children
+            item_connector = "└── " if is_last_item else "├── "
+            shared_note = f" (shared from {shared[path]})" if path in shared else ""
+            print(f"{child_prefix}{item_connector}{path}{shared_note}")
+
+        for i, child in enumerate(children):
+            is_last = i == len(children) - 1
+            child_connector = "└── " if is_last else "├── "
+            render_profile(child, child_prefix, child_connector)
+
+    for i, name in enumerate(root_profiles):
+        is_last = i == len(root_profiles) - 1
+        connector = "└── " if is_last else "├── "
+        render_profile(name, "", connector)
+
+    if all_shared_links:
+        print()
+        print("Shared links:")
+        for profile_name, path, src in all_shared_links:
+            print(f"  {profile_name}/{path} → {src}/{path}")
 
 
 def main():
@@ -903,9 +1130,19 @@ def main():
     p_migrate = sub.add_parser("migrate", help="Migrate from legacy ~/.claude-swap/ to ~/.config/claudehopper/")
     p_migrate.add_argument("--dry-run", "-n", action="store_true", help="Show what would happen")
 
+    # tree
+    p_tree = sub.add_parser("tree", help="Show profile relationships as a tree")
+    p_tree.add_argument("--json", action="store_true", help="Output as JSON")
+
     # path
     p_path = sub.add_parser("path", help="Print profile directory path")
     p_path.add_argument("name")
+
+    # stats
+    p_stats = sub.add_parser("stats", help="Show profile usage statistics")
+    p_stats.add_argument("--profile", "-p", help="Filter to specific profile")
+    p_stats.add_argument("--since", help="Only show usage after this date (YYYY-MM-DD)")
+    p_stats.add_argument("--json", action="store_true", help="Output as JSON")
 
     args = parser.parse_args()
 
@@ -926,6 +1163,8 @@ def main():
         "unmanage": cmd_unmanage,
         "migrate": cmd_migrate,
         "path": cmd_path,
+        "tree": cmd_tree,
+        "stats": cmd_stats,
     }
 
     fn = commands.get(args.command, cmd_status)
