@@ -20,15 +20,10 @@ HOPPER_DIR = Path.home() / ".config" / "claudehopper"
 PROFILES_DIR = HOPPER_DIR / "profiles"
 CONFIG_FILE = HOPPER_DIR / "config.json"
 
-# Legacy paths for migration
-LEGACY_DIR = Path.home() / ".claude-swap"
-LEGACY_MANIFEST = ".ccswap-manifest.json"
-LEGACY_BACKUP_SUFFIX = ".ccswap-backup"
-
 MANIFEST_NAME = ".hop-manifest.json"
 BACKUP_SUFFIX = ".hop-backup"
 
-USAGE_FILE = HOPPER_DIR / "usage.jsonl"
+USAGE_FILE_NAME = "usage.jsonl"
 
 # These belong to Claude Code itself — never profile-managed
 SHARED_PATHS = {
@@ -52,7 +47,7 @@ def die(msg: str):
 
 
 def record_usage(profile: str, action: str):
-    """Append a usage record to USAGE_FILE. Never raises."""
+    """Append a usage record. Never raises."""
     try:
         HOPPER_DIR.mkdir(parents=True, exist_ok=True)
         entry = {
@@ -60,7 +55,7 @@ def record_usage(profile: str, action: str):
             "timestamp": datetime.datetime.now().isoformat(),
             "action": action,
         }
-        with USAGE_FILE.open("a") as f:
+        with (HOPPER_DIR / USAGE_FILE_NAME).open("a") as f:
             f.write(json.dumps(entry) + "\n")
     except Exception as e:
         print(f"warning: could not record usage: {e}", file=sys.stderr)
@@ -96,11 +91,10 @@ def require_profile(name: str) -> Path:
 
 
 def load_manifest(pdir: Path) -> dict:
-    """Load manifest, supporting both new and legacy filenames."""
-    for name in (MANIFEST_NAME, LEGACY_MANIFEST):
-        manifest = pdir / name
-        if manifest.exists():
-            return json.loads(manifest.read_text())
+    """Load profile manifest."""
+    manifest = pdir / MANIFEST_NAME
+    if manifest.exists():
+        return json.loads(manifest.read_text())
     return {"managed_paths": [], "shared_paths": {}, "description": ""}
 
 
@@ -112,7 +106,7 @@ def get_managed_paths(pdir: Path) -> list[str]:
     # Infer from directory contents
     return sorted(
         item.name for item in pdir.iterdir()
-        if item.name not in (MANIFEST_NAME, LEGACY_MANIFEST)
+        if item.name != MANIFEST_NAME
     )
 
 
@@ -131,10 +125,6 @@ def save_manifest(pdir: Path, managed_paths: list[str], description: str = "",
         "description": description or existing.get("description", ""),
     }
     (pdir / MANIFEST_NAME).write_text(json.dumps(data, indent=2) + "\n")
-    # Remove legacy manifest if it exists alongside new one
-    legacy = pdir / LEGACY_MANIFEST
-    if legacy.exists():
-        legacy.unlink()
 
 
 def detect_profile_paths() -> list[str]:
@@ -256,123 +246,10 @@ def link_managed_path(pdir: Path, p: str):
     return False
 
 
-# ── Migration ─────────────────────────────────────────────────────────────
-
-
-def check_migration():
-    """Check if legacy ~/.claude-swap/ exists and needs migration."""
-    if LEGACY_DIR.exists() and not HOPPER_DIR.exists():
-        return True
-    return False
-
-
-def cmd_migrate(args):
-    """Migrate from ~/.claude-swap/ to ~/.config/claudehopper/."""
-    if not LEGACY_DIR.exists():
-        print("No legacy ~/.claude-swap/ directory found. Nothing to migrate.")
-        return
-
-    if HOPPER_DIR.exists() and (HOPPER_DIR / "profiles").exists():
-        profiles = list((HOPPER_DIR / "profiles").iterdir())
-        if profiles:
-            die("~/.config/claudehopper/ already exists with profiles. "
-                "Remove it first or migrate manually.")
-
-    legacy_config = LEGACY_DIR / "config.json"
-    legacy_profiles = LEGACY_DIR / "profiles"
-
-    if args.dry_run:
-        print("Dry run: migrate from ~/.claude-swap/ to ~/.config/claudehopper/")
-        if legacy_config.exists():
-            config = json.loads(legacy_config.read_text())
-            print(f"  Active profile: {config.get('active', 'none')}")
-        if legacy_profiles.exists():
-            for d in sorted(legacy_profiles.iterdir()):
-                if d.is_dir():
-                    print(f"  [copy] profile '{d.name}'")
-        print("  [re-link] all managed paths in ~/.claude/")
-        print("  [cleanup] remove ~/.claude-swap/ after verification")
-        return
-
-    # Step 1: Copy legacy dir to new location (not rename — safe rollback)
-    print("Copying profiles to ~/.config/claudehopper/...")
-    HOPPER_DIR.mkdir(parents=True, exist_ok=True)
-
-    if legacy_profiles.exists():
-        shutil.copytree(legacy_profiles, PROFILES_DIR, symlinks=True,
-                        ignore_dangling_symlinks=True)
-
-    # Step 2: Copy config
-    if legacy_config.exists():
-        shutil.copy2(legacy_config, CONFIG_FILE)
-
-    # Step 3: Rename manifest files and fix intra-profile symlinks
-    if PROFILES_DIR.exists():
-        for pdir in PROFILES_DIR.iterdir():
-            if not pdir.is_dir():
-                continue
-
-            # Rename legacy manifest
-            old_manifest = pdir / LEGACY_MANIFEST
-            new_manifest = pdir / MANIFEST_NAME
-            if old_manifest.exists() and not new_manifest.exists():
-                old_manifest.rename(new_manifest)
-
-            # Fix shared symlinks that point into old ~/.claude-swap/
-            for item in pdir.iterdir():
-                if item.is_symlink():
-                    link_target = os.readlink(item)
-                    if str(LEGACY_DIR) in link_target:
-                        new_target = link_target.replace(str(LEGACY_DIR), str(HOPPER_DIR))
-                        item.unlink()
-                        item.symlink_to(new_target)
-                        print(f"  Fixed shared link: {pdir.name}/{item.name}")
-
-    # Step 4: Re-link active profile in ~/.claude/
-    config = load_config()
-    active = config.get("active")
-    if active:
-        pdir = profile_dir(active)
-        if pdir.exists():
-            managed = get_managed_paths(pdir)
-            for p in managed:
-                link = CLAUDE_DIR / p
-                if link.is_symlink():
-                    old_target = os.readlink(link)
-                    if str(LEGACY_DIR) in old_target:
-                        link_managed_path(pdir, p)
-                        print(f"  Re-linked: {p}")
-
-    # Step 5: Verify everything works
-    errors = []
-    if active:
-        pdir = profile_dir(active)
-        if pdir.exists():
-            for p in get_managed_paths(pdir):
-                link = CLAUDE_DIR / p
-                if link.is_symlink() and not link.resolve().exists():
-                    errors.append(f"  Broken symlink: {p} -> {os.readlink(link)}")
-
-    if errors:
-        print("Migration completed with warnings:", file=sys.stderr)
-        for e in errors:
-            print(e, file=sys.stderr)
-        print(f"\nLegacy directory preserved at {LEGACY_DIR} (safe to remove manually)")
-    else:
-        # Step 6: Remove legacy dir only after verification passes
-        shutil.rmtree(LEGACY_DIR)
-        print(f"Migration complete. Removed {LEGACY_DIR}")
-
-    print(f"Profiles now at: {PROFILES_DIR}")
-
-
 # ── Commands ──────────────────────────────────────────────────────────────
 
 
 def cmd_status(_args):
-    if check_migration():
-        print("Legacy ~/.claude-swap/ detected. Run 'claudehopper migrate' to migrate.\n")
-
     config = load_config()
     active = config.get("active")
 
@@ -881,11 +758,12 @@ def _relative_time(ts: str) -> str:
 
 def cmd_stats(args):
     """Show profile usage statistics."""
-    if not USAGE_FILE.exists():
+    usage_file = HOPPER_DIR / USAGE_FILE_NAME
+    if not usage_file.exists():
         print("No usage data yet.")
         return
 
-    lines = USAGE_FILE.read_text().splitlines()
+    lines = usage_file.read_text().splitlines()
     entries = []
     for line in lines:
         line = line.strip()
@@ -1062,9 +940,14 @@ def cmd_tree(args):
 
 
 def main():
+    fmt = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(
         prog="claudehopper",
-        description="Switch between Claude Code configuration profiles",
+        description="Switch between Claude Code configuration profiles.\n\n"
+                    "Profiles are stored in ~/.config/claudehopper/profiles/<name>/.\n"
+                    "Profile-specific files in ~/.claude/ are symlinked to the active profile.\n"
+                    "Shared files (credentials, history, projects) are never touched.",
+        formatter_class=fmt,
     )
     parser.add_argument(
         "--version", action="version",
@@ -1073,74 +956,176 @@ def main():
     sub = parser.add_subparsers(dest="command")
 
     # status
-    sub.add_parser("status", help="Show current profile status")
+    sub.add_parser("status", help="Show current profile status",
+                   formatter_class=fmt,
+                   description="Show which profile is active and the link status of each managed path.\n"
+                               "If no profile is active, shows profile-specific items in ~/.claude/.",
+                   epilog="Examples:\n"
+                          "  hop status")
 
     # list
-    sub.add_parser("list", aliases=["ls"], help="List all profiles")
+    sub.add_parser("list", aliases=["ls"], help="List all profiles",
+                   formatter_class=fmt,
+                   description="List all profiles with their managed path counts, shared paths, and descriptions.",
+                   epilog="Examples:\n"
+                          "  hop list\n"
+                          "  hop ls")
 
     # create
-    p_create = sub.add_parser("create", help="Create a new profile")
+    p_create = sub.add_parser("create", help="Create a new profile",
+                              formatter_class=fmt,
+                              description="Create a new profile. By default creates a blank profile with just\n"
+                                          "settings.json. Use --from-current to capture your current ~/.claude/\n"
+                                          "setup, or --from-profile to clone an existing profile.",
+                              epilog="Examples:\n"
+                                     "  hop create work --from-current -d 'Work setup'\n"
+                                     "  hop create personal --from-profile work -d 'Personal'\n"
+                                     "  hop create vanilla -d 'Clean Claude Code'\n"
+                                     "  hop create omc --from-current --activate")
     p_create.add_argument("name", help="Profile name")
-    p_create.add_argument("--from-current", action="store_true", help="Import current ~/.claude/")
-    p_create.add_argument("--from-profile", metavar="PROFILE", help="Clone existing profile")
-    p_create.add_argument("--description", "-d", help="Short description")
-    p_create.add_argument("--activate", action="store_true", help="Switch to it after creating")
+    p_create.add_argument("--from-current", action="store_true",
+                          help="Import profile-specific files from current ~/.claude/")
+    p_create.add_argument("--from-profile", metavar="PROFILE",
+                          help="Clone all files from an existing profile")
+    p_create.add_argument("--description", "-d", help="Short description for this profile")
+    p_create.add_argument("--activate", action="store_true",
+                          help="Switch to the new profile immediately after creating it")
 
     # switch
-    p_switch = sub.add_parser("switch", aliases=["sw"], help="Switch active profile")
+    p_switch = sub.add_parser("switch", aliases=["sw"], help="Switch active profile",
+                              formatter_class=fmt,
+                              description="Switch to a different profile. Removes symlinks for the current\n"
+                                          "profile and creates new symlinks pointing to the target profile.\n"
+                                          "Credentials, history, and other shared files are never touched.",
+                              epilog="Examples:\n"
+                                     "  hop switch work\n"
+                                     "  hop sw personal\n"
+                                     "  hop switch omc --dry-run\n"
+                                     "  hop switch work --force")
     p_switch.add_argument("name", help="Profile to activate")
-    p_switch.add_argument("--force", "-f", action="store_true", help="Force, backing up conflicts")
-    p_switch.add_argument("--dry-run", "-n", action="store_true", help="Show what would happen")
+    p_switch.add_argument("--force", "-f", action="store_true",
+                          help="Force switch, backing up any conflicting unmanaged files")
+    p_switch.add_argument("--dry-run", "-n", action="store_true",
+                          help="Show what would change without touching anything")
 
     # pick
-    p_pick = sub.add_parser("pick", help="Copy files from one profile into another")
-    p_pick.add_argument("source", help="Source profile")
-    p_pick.add_argument("paths", nargs="+", help="Paths to copy")
-    p_pick.add_argument("--target", "-t", help="Target profile (default: active)")
+    p_pick = sub.add_parser("pick", help="Copy files from one profile into another",
+                            formatter_class=fmt,
+                            description="Copy specific files from one profile into another as independent\n"
+                                        "copies. Unlike 'share', changes to the copy won't affect the original.\n"
+                                        "If no --target is given, copies into the active profile.",
+                            epilog="Examples:\n"
+                                   "  hop pick work CLAUDE.md settings.json\n"
+                                   "  hop pick work commands/ --target personal\n"
+                                   "  hop pick work CLAUDE.md --dry-run")
+    p_pick.add_argument("source", help="Source profile to copy from")
+    p_pick.add_argument("paths", nargs="+", help="File or directory names to copy")
+    p_pick.add_argument("--target", "-t", help="Target profile (default: active profile)")
     p_pick.add_argument("--dry-run", "-n", action="store_true", help="Show what would happen")
 
     # share
-    p_share = sub.add_parser("share", help="Share files from one profile into another via symlinks")
-    p_share.add_argument("source", help="Source profile (owns the files)")
-    p_share.add_argument("paths", nargs="+", help="Paths to share")
-    p_share.add_argument("--target", "-t", help="Target profile (default: active)")
+    p_share = sub.add_parser("share", help="Share files between profiles via symlinks",
+                             formatter_class=fmt,
+                             description="Share files from one profile into another using symlinks.\n"
+                                         "Both profiles will point to the same underlying file, so edits\n"
+                                         "in one are immediately visible in the other. The source profile\n"
+                                         "owns the real file.",
+                             epilog="Examples:\n"
+                                    "  hop share work commands/ --target personal\n"
+                                    "  hop share omc .mcp.json\n"
+                                    "  hop share work settings.json --dry-run")
+    p_share.add_argument("source", help="Source profile that owns the files")
+    p_share.add_argument("paths", nargs="+", help="File or directory names to share")
+    p_share.add_argument("--target", "-t", help="Target profile (default: active profile)")
     p_share.add_argument("--dry-run", "-n", action="store_true", help="Show what would happen")
 
     # unshare
-    p_unshare = sub.add_parser("unshare", help="Convert shared files back to independent copies")
-    p_unshare.add_argument("paths", nargs="*", help="Paths to unshare (default: all)")
+    p_unshare = sub.add_parser("unshare", help="Convert shared files back to independent copies",
+                               formatter_class=fmt,
+                               description="Materialize shared (symlinked) files back into independent copies.\n"
+                                           "After unsharing, changes in one profile won't affect the other.\n"
+                                           "If no paths are specified, unshares all shared files.",
+                               epilog="Examples:\n"
+                                      "  hop unshare commands/\n"
+                                      "  hop unshare                    # unshare everything\n"
+                                      "  hop unshare -p work settings.json")
+    p_unshare.add_argument("paths", nargs="*", help="Paths to unshare (default: all shared paths)")
     p_unshare.add_argument("--profile", "-p", help="Profile to unshare in (default: active)")
     p_unshare.add_argument("--dry-run", "-n", action="store_true", help="Show what would happen")
 
     # diff
-    p_diff = sub.add_parser("diff", help="Compare two profiles")
-    p_diff.add_argument("profile_a")
-    p_diff.add_argument("profile_b")
+    p_diff = sub.add_parser("diff", help="Compare two profiles",
+                            formatter_class=fmt,
+                            description="Compare the contents of two profiles side by side.\n"
+                                        "Shows files unique to each profile and whether shared files\n"
+                                        "are identical or different.",
+                            epilog="Examples:\n"
+                                   "  hop diff work personal\n"
+                                   "  hop diff omc vanilla")
+    p_diff.add_argument("profile_a", help="First profile to compare")
+    p_diff.add_argument("profile_b", help="Second profile to compare")
 
     # delete
-    p_del = sub.add_parser("delete", aliases=["rm"], help="Delete a profile")
-    p_del.add_argument("name")
-    p_del.add_argument("--yes", "-y", action="store_true", help="Skip confirmation")
+    p_del = sub.add_parser("delete", aliases=["rm"], help="Delete a profile",
+                           formatter_class=fmt,
+                           description="Delete a profile and all its files. Cannot delete the active\n"
+                                       "profile — switch to a different one first. Warns if other\n"
+                                       "profiles share files from the one being deleted.",
+                           epilog="Examples:\n"
+                                  "  hop delete old-profile\n"
+                                  "  hop rm temp --yes")
+    p_del.add_argument("name", help="Profile to delete")
+    p_del.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
 
     # unmanage
-    p_unmanage = sub.add_parser("unmanage", help="Stop managing, materialize symlinks back to real files")
+    p_unmanage = sub.add_parser("unmanage", help="Stop managing ~/.claude/, restore real files",
+                                formatter_class=fmt,
+                                description="Stop using claudehopper for the active profile. Replaces all\n"
+                                            "symlinks in ~/.claude/ with real copies of the files, so your\n"
+                                            "config works without claudehopper installed. Does not delete\n"
+                                            "the profile — you can re-activate it later.",
+                                epilog="Examples:\n"
+                                       "  hop unmanage\n"
+                                       "  hop unmanage --dry-run")
     p_unmanage.add_argument("--dry-run", "-n", action="store_true", help="Show what would happen")
 
-    # migrate
-    p_migrate = sub.add_parser("migrate", help="Migrate from legacy ~/.claude-swap/ to ~/.config/claudehopper/")
-    p_migrate.add_argument("--dry-run", "-n", action="store_true", help="Show what would happen")
-
     # tree
-    p_tree = sub.add_parser("tree", help="Show profile relationships as a tree")
-    p_tree.add_argument("--json", action="store_true", help="Output as JSON")
+    p_tree = sub.add_parser("tree", help="Visualize profile relationships",
+                            formatter_class=fmt,
+                            description="Show all profiles as a visual tree with their managed files,\n"
+                                        "shared file relationships, and profile lineage (which profiles\n"
+                                        "were cloned from others).",
+                            epilog="Examples:\n"
+                                   "  hop tree\n"
+                                   "  hop tree --json")
+    p_tree.add_argument("--json", action="store_true", help="Output as JSON instead of a tree")
 
     # path
-    p_path = sub.add_parser("path", help="Print profile directory path")
-    p_path.add_argument("name")
+    p_path = sub.add_parser("path", help="Print a profile's directory path",
+                            formatter_class=fmt,
+                            description="Print the full filesystem path to a profile's directory.\n"
+                                        "Useful for scripting or opening the profile in a file manager.",
+                            epilog="Examples:\n"
+                                   "  hop path work\n"
+                                   "  # Output: /home/you/.config/claudehopper/profiles/work\n\n"
+                                   "  # Open in file manager:\n"
+                                   "  xdg-open $(hop path work)\n\n"
+                                   "  # Edit a profile's CLAUDE.md directly:\n"
+                                   "  vim $(hop path work)/CLAUDE.md")
+    p_path.add_argument("name", help="Profile name")
 
     # stats
-    p_stats = sub.add_parser("stats", help="Show profile usage statistics")
-    p_stats.add_argument("--profile", "-p", help="Filter to specific profile")
+    p_stats = sub.add_parser("stats", help="Show profile usage statistics",
+                             formatter_class=fmt,
+                             description="Show how often each profile has been used, with switch counts\n"
+                                         "and last-used times. Usage is recorded automatically on switch,\n"
+                                         "create, delete, pick, and share actions.",
+                             epilog="Examples:\n"
+                                    "  hop stats\n"
+                                    "  hop stats --profile work\n"
+                                    "  hop stats --since 2025-01-01\n"
+                                    "  hop stats --json")
+    p_stats.add_argument("--profile", "-p", help="Filter to a specific profile")
     p_stats.add_argument("--since", help="Only show usage after this date (YYYY-MM-DD)")
     p_stats.add_argument("--json", action="store_true", help="Output as JSON")
 
@@ -1161,7 +1146,6 @@ def main():
         "delete": cmd_delete,
         "rm": cmd_delete,
         "unmanage": cmd_unmanage,
-        "migrate": cmd_migrate,
         "path": cmd_path,
         "tree": cmd_tree,
         "stats": cmd_stats,

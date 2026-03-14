@@ -19,7 +19,6 @@ class ClaudeHopperTestCase(unittest.TestCase):
         self.claude_dir = self.tmpdir / ".claude"
         self.hopper_dir = self.tmpdir / ".config" / "claudehopper"
         self.profiles_dir = self.hopper_dir / "profiles"
-        self.legacy_dir = self.tmpdir / ".claude-swap"
         self.claude_dir.mkdir()
 
         # Patch module-level paths
@@ -28,7 +27,6 @@ class ClaudeHopperTestCase(unittest.TestCase):
             mock.patch.object(cli, "HOPPER_DIR", self.hopper_dir),
             mock.patch.object(cli, "PROFILES_DIR", self.profiles_dir),
             mock.patch.object(cli, "CONFIG_FILE", self.hopper_dir / "config.json"),
-            mock.patch.object(cli, "LEGACY_DIR", self.legacy_dir),
         ]
         for p in self._patchers:
             p.start()
@@ -433,100 +431,6 @@ class TestUnmanage(ClaudeHopperTestCase):
         self.assertIsNone(config["active"])
 
 
-class TestMigration(ClaudeHopperTestCase):
-
-    def _setup_legacy_dir(self):
-        """Create a fake ~/.claude-swap/ with a profile."""
-        self.legacy_dir.mkdir(parents=True)
-        legacy_profiles = self.legacy_dir / "profiles"
-        legacy_profiles.mkdir()
-
-        # Create a legacy profile
-        pdir = legacy_profiles / "myprofile"
-        pdir.mkdir()
-        (pdir / "settings.json").write_text('{"legacy": true}')
-        # Write a legacy manifest
-        manifest = {
-            "managed_paths": ["settings.json"],
-            "shared_paths": {},
-            "description": "legacy profile",
-        }
-        (pdir / ".ccswap-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-
-        # Write a legacy config
-        config = {"active": "myprofile"}
-        (self.legacy_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
-
-        return pdir
-
-    def test_check_migration_detects_legacy(self):
-        """check_migration returns True when legacy dir exists and hopper dir does not."""
-        self.legacy_dir.mkdir(parents=True)
-        self.assertTrue(cli.check_migration())
-
-    def test_check_migration_no_legacy(self):
-        """check_migration returns False when no legacy dir exists."""
-        self.assertFalse(cli.check_migration())
-
-    def test_check_migration_both_exist(self):
-        """check_migration returns False when both dirs exist (already migrated)."""
-        self.legacy_dir.mkdir(parents=True)
-        self.hopper_dir.mkdir(parents=True)
-        self.assertFalse(cli.check_migration())
-
-    def test_full_migration(self):
-        """Migration copies profiles and renames manifest files."""
-        self._setup_legacy_dir()
-
-        args = mock.Mock(dry_run=False)
-        cli.cmd_migrate(args)
-
-        # Legacy dir should be gone
-        self.assertFalse(self.legacy_dir.exists())
-
-        # New profile dir should exist with migrated profile
-        new_pdir = self.profiles_dir / "myprofile"
-        self.assertTrue(new_pdir.exists())
-        self.assertTrue((new_pdir / "settings.json").exists())
-
-        # Manifest should use the new name
-        self.assertTrue((new_pdir / ".hop-manifest.json").exists())
-        self.assertFalse((new_pdir / ".ccswap-manifest.json").exists())
-
-        # Config should be migrated
-        config = cli.load_config()
-        self.assertEqual(config.get("active"), "myprofile")
-
-    def test_migration_dry_run(self):
-        """Dry-run migration does not touch any files."""
-        self._setup_legacy_dir()
-
-        args = mock.Mock(dry_run=True)
-        cli.cmd_migrate(args)
-
-        # Legacy dir should be untouched
-        self.assertTrue(self.legacy_dir.exists())
-        # New dir should not have been created
-        self.assertFalse(self.hopper_dir.exists())
-
-    def test_migration_no_legacy_dir(self):
-        """migrate command exits cleanly when no legacy dir exists."""
-        args = mock.Mock(dry_run=False)
-        cli.cmd_migrate(args)  # should not raise
-
-    def test_migration_idempotent(self):
-        """Migrating when hopper dir already has profiles raises an error."""
-        self._setup_legacy_dir()
-
-        # Pre-create the hopper profiles dir with content
-        new_pdir = self.profiles_dir / "existing"
-        new_pdir.mkdir(parents=True)
-
-        args = mock.Mock(dry_run=False)
-        with self.assertRaises(SystemExit):
-            cli.cmd_migrate(args)
-
-
 class TestAtomicSymlink(ClaudeHopperTestCase):
 
     def test_atomic_symlink_creates_symlink(self):
@@ -574,13 +478,6 @@ class TestPathCommand(ClaudeHopperTestCase):
 
 
 class TestUsageRecording(ClaudeHopperTestCase):
-
-    def setUp(self):
-        super().setUp()
-        self._patchers.append(
-            mock.patch.object(cli, "USAGE_FILE", self.hopper_dir / "usage.jsonl")
-        )
-        self._patchers[-1].start()
 
     def test_record_usage_creates_file(self):
         self.hopper_dir.mkdir(parents=True, exist_ok=True)
@@ -658,10 +555,6 @@ class TestStats(ClaudeHopperTestCase):
 
     def setUp(self):
         super().setUp()
-        self._patchers.append(
-            mock.patch.object(cli, "USAGE_FILE", self.hopper_dir / "usage.jsonl")
-        )
-        self._patchers[-1].start()
         self.usage_file = self.hopper_dir / "usage.jsonl"
 
     def _write_entries(self, entries):

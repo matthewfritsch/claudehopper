@@ -204,14 +204,6 @@ Stop using claudehopper. Materializes all symlinks in `~/.claude/` back to real 
 claudehopper unmanage
 ```
 
-### `migrate`
-
-Migrate an existing `~/.claude-swap/` setup (legacy tool) to claudehopper profiles.
-
-```bash
-claudehopper migrate
-```
-
 ### `tree`
 
 Show all profiles as a visual tree with lineage and shared file relationships.
@@ -267,12 +259,3 @@ claudehopper path work
 - `unmanage` always materializes symlinks to real files before removing configuration, so you never lose data.
 - Conflicting unmanaged files in `~/.claude/` are backed up before being replaced on switch.
 
-## Migration from claude-swap
-
-If you previously used `~/.claude-swap/`, run:
-
-```bash
-claudehopper migrate
-```
-
-This imports your existing swap configurations as named profiles.
