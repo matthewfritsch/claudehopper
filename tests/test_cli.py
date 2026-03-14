@@ -1,5 +1,6 @@
 """Tests for claudehopper using isolated temp directories."""
 
+import argparse
 import json
 import os
 import shutil
@@ -22,11 +23,13 @@ class ClaudeHopperTestCase(unittest.TestCase):
         self.claude_dir.mkdir()
 
         # Patch module-level paths
+        self.shared_dir = self.hopper_dir / "shared"
         self._patchers = [
             mock.patch.object(cli, "CLAUDE_DIR", self.claude_dir),
             mock.patch.object(cli, "HOPPER_DIR", self.hopper_dir),
             mock.patch.object(cli, "PROFILES_DIR", self.profiles_dir),
             mock.patch.object(cli, "CONFIG_FILE", self.hopper_dir / "config.json"),
+            mock.patch.object(cli, "SHARED_DIR", self.shared_dir),
         ]
         for p in self._patchers:
             p.start()
@@ -177,7 +180,8 @@ class TestSwitch(ClaudeHopperTestCase):
             {"secret": True}
         )
 
-    def test_switch_between_profiles(self):
+    @mock.patch.object(cli, "_prompt", return_value="n")
+    def test_switch_between_profiles(self, mock_prompt):
         self._populate_claude_dir()
         # Create two profiles
         for name in ["a", "b"]:
@@ -225,6 +229,111 @@ class TestSwitch(ClaudeHopperTestCase):
 
         with self.assertRaises(SystemExit):
             cli._do_switch("broken", force=True)
+
+
+class TestAdoptOnSwitch(ClaudeHopperTestCase):
+    """Tests for detecting and adopting unmanaged files on switch."""
+
+    def _setup_profile_with_extra_files(self):
+        """Create a profile, switch to it, then add unmanaged files."""
+        args = argparse.Namespace(
+            name="main", from_current=False, from_profile=None,
+            description="", activate=False, no_shared_defaults=True,
+        )
+        cli.cmd_create(args)
+        cli._do_switch("main", force=True)
+
+        # Simulate an installer creating new files in ~/.claude/
+        (self.claude_dir / "agents").mkdir()
+        (self.claude_dir / "agents" / "helper.md").write_text("# helper")
+        (self.claude_dir / "new-config.json").write_text('{"installed": true}')
+
+        args2 = argparse.Namespace(
+            name="other", from_current=False, from_profile=None,
+            description="", activate=False, no_shared_defaults=True,
+        )
+        cli.cmd_create(args2)
+
+    @mock.patch.object(cli, "_prompt", return_value="y")
+    def test_adopt_yes_moves_files_into_profile(self, mock_prompt):
+        self._setup_profile_with_extra_files()
+        cli._do_switch("other")
+
+        pdir = self.profiles_dir / "main"
+        manifest = cli.load_manifest(pdir)
+        managed = manifest["managed_paths"]
+        self.assertIn("agents", managed)
+        self.assertIn("new-config.json", managed)
+        self.assertTrue((pdir / "agents" / "helper.md").exists())
+        self.assertTrue((pdir / "new-config.json").exists())
+
+    @mock.patch.object(cli, "_prompt", return_value="n")
+    def test_adopt_no_leaves_files(self, mock_prompt):
+        self._setup_profile_with_extra_files()
+        cli._do_switch("other")
+
+        # Files should NOT be in the profile
+        pdir = self.profiles_dir / "main"
+        manifest = cli.load_manifest(pdir)
+        self.assertNotIn("agents", manifest["managed_paths"])
+        self.assertNotIn("new-config.json", manifest["managed_paths"])
+
+    @mock.patch.object(cli, "_prompt", return_value="skip")
+    def test_adopt_skip_leaves_files(self, mock_prompt):
+        self._setup_profile_with_extra_files()
+        cli._do_switch("other")
+
+        pdir = self.profiles_dir / "main"
+        manifest = cli.load_manifest(pdir)
+        self.assertNotIn("agents", manifest["managed_paths"])
+
+    def test_no_prompt_when_no_unmanaged(self):
+        """No prompt if there are no unmanaged files."""
+        args = argparse.Namespace(
+            name="a", from_current=False, from_profile=None,
+            description="", activate=False, no_shared_defaults=True,
+        )
+        cli.cmd_create(args)
+        args2 = argparse.Namespace(
+            name="b", from_current=False, from_profile=None,
+            description="", activate=False, no_shared_defaults=True,
+        )
+        cli.cmd_create(args2)
+
+        cli._do_switch("a", force=True)
+        # Switch with no extra files — should not prompt
+        with mock.patch.object(cli, "_prompt") as mock_prompt:
+            cli._do_switch("b")
+            mock_prompt.assert_not_called()
+
+    def test_adopt_flag_skips_prompt(self):
+        """--adopt flag auto-adopts without prompting."""
+        self._setup_profile_with_extra_files()
+        with mock.patch.object(cli, "_prompt") as mock_prompt:
+            cli._do_switch("other", adopt=True)
+            mock_prompt.assert_not_called()
+
+        pdir = self.profiles_dir / "main"
+        manifest = cli.load_manifest(pdir)
+        self.assertIn("agents", manifest["managed_paths"])
+        self.assertIn("new-config.json", manifest["managed_paths"])
+
+    def test_detect_unmanaged_ignores_shared_paths(self):
+        """Shared paths like .credentials.json should not be flagged."""
+        args = argparse.Namespace(
+            name="main", from_current=False, from_profile=None,
+            description="", activate=False, no_shared_defaults=True,
+        )
+        cli.cmd_create(args)
+        cli._do_switch("main", force=True)
+
+        # These are in SHARED_PATHS and should be ignored
+        (self.claude_dir / ".credentials.json").write_text("{}")
+        (self.claude_dir / "projects").mkdir(exist_ok=True)
+
+        unmanaged = cli.detect_unmanaged("main")
+        self.assertNotIn(".credentials.json", unmanaged)
+        self.assertNotIn("projects", unmanaged)
 
 
 class TestShare(ClaudeHopperTestCase):
@@ -724,6 +833,167 @@ class TestTree(ClaudeHopperTestCase):
         output = self._capture_tree(json_flag=True)
         result = json.loads(output)
         self.assertEqual(result, {"profiles": []})
+
+class TestSharedDefaults(ClaudeHopperTestCase):
+    """Tests for DEFAULT_LINKED shared file behavior."""
+
+    def test_create_from_current_seeds_shared_dir(self):
+        """First profile created from current ~/.claude/ seeds the shared dir."""
+        self._populate_claude_dir()
+        # Add settings.local.json and .mcp.json to claude_dir
+        (self.claude_dir / "settings.local.json").write_text('{"local": true}')
+        (self.claude_dir / ".mcp.json").write_text('{"mcpServers": {}}')
+
+        args = argparse.Namespace(
+            name="first", from_current=True, from_profile=None,
+            description="first profile", activate=False, no_shared_defaults=False,
+        )
+        cli.cmd_create(args)
+
+        pdir = self.profiles_dir / "first"
+        # Shared dir should now exist and contain the files
+        self.assertTrue(self.shared_dir.exists())
+        self.assertTrue((self.shared_dir / "settings.json").exists())
+        self.assertTrue((self.shared_dir / "settings.local.json").exists())
+        self.assertTrue((self.shared_dir / ".mcp.json").exists())
+
+        # Profile files should be symlinks to shared dir
+        self.assertTrue((pdir / "settings.json").is_symlink())
+        self.assertTrue((pdir / "settings.local.json").is_symlink())
+        self.assertTrue((pdir / ".mcp.json").is_symlink())
+        self.assertEqual((pdir / "settings.json").resolve(), (self.shared_dir / "settings.json").resolve())
+
+    def test_create_blank_links_existing_shared(self):
+        """Blank profile gets symlinks if shared dir already has files."""
+        # Pre-populate shared dir
+        self.shared_dir.mkdir(parents=True)
+        (self.shared_dir / "settings.json").write_text('{"shared": true}')
+        (self.shared_dir / ".mcp.json").write_text('{"mcpServers": {}}')
+
+        args = argparse.Namespace(
+            name="blank", from_current=False, from_profile=None,
+            description="blank", activate=False, no_shared_defaults=False,
+        )
+        cli.cmd_create(args)
+
+        pdir = self.profiles_dir / "blank"
+        # settings.json should be a symlink to shared
+        self.assertTrue((pdir / "settings.json").is_symlink())
+        self.assertEqual((pdir / "settings.json").resolve(), (self.shared_dir / "settings.json").resolve())
+        # .mcp.json should also be linked
+        self.assertTrue((pdir / ".mcp.json").is_symlink())
+
+    def test_no_shared_defaults_flag(self):
+        """--no-shared-defaults prevents linking."""
+        self.shared_dir.mkdir(parents=True)
+        (self.shared_dir / "settings.json").write_text('{"shared": true}')
+
+        args = argparse.Namespace(
+            name="isolated", from_current=False, from_profile=None,
+            description="isolated", activate=False, no_shared_defaults=True,
+        )
+        cli.cmd_create(args)
+
+        pdir = self.profiles_dir / "isolated"
+        # settings.json should be a regular file, not a symlink
+        self.assertTrue((pdir / "settings.json").exists())
+        self.assertFalse((pdir / "settings.json").is_symlink())
+
+    def test_shared_content_is_preserved(self):
+        """Shared files contain the original content after linking."""
+        self._populate_claude_dir()
+        (self.claude_dir / "settings.json").write_text('{"hooks": {"pre": "test"}}')
+
+        args = argparse.Namespace(
+            name="check", from_current=True, from_profile=None,
+            description="", activate=False, no_shared_defaults=False,
+        )
+        cli.cmd_create(args)
+
+        # Shared file should have the original content
+        content = json.loads((self.shared_dir / "settings.json").read_text())
+        self.assertEqual(content, {"hooks": {"pre": "test"}})
+
+        # Reading through the profile symlink should give the same content
+        pdir = self.profiles_dir / "check"
+        content_via_link = json.loads((pdir / "settings.json").read_text())
+        self.assertEqual(content_via_link, {"hooks": {"pre": "test"}})
+
+    def test_manifest_records_shared_paths(self):
+        """Manifest should record shared paths after linking."""
+        self._populate_claude_dir()
+
+        args = argparse.Namespace(
+            name="manifest", from_current=True, from_profile=None,
+            description="", activate=False, no_shared_defaults=False,
+        )
+        cli.cmd_create(args)
+
+        pdir = self.profiles_dir / "manifest"
+        manifest = cli.load_manifest(pdir)
+        shared = manifest.get("shared_paths", {})
+        self.assertEqual(shared.get("settings.json"), "(shared)")
+
+    def test_second_profile_links_to_same_shared(self):
+        """Two profiles both link to the same shared files."""
+        self._populate_claude_dir()
+        (self.claude_dir / ".mcp.json").write_text('{"mcpServers": {"fs": {}}}')
+
+        args1 = argparse.Namespace(
+            name="first", from_current=True, from_profile=None,
+            description="", activate=False, no_shared_defaults=False,
+        )
+        cli.cmd_create(args1)
+
+        args2 = argparse.Namespace(
+            name="second", from_current=False, from_profile=None,
+            description="", activate=False, no_shared_defaults=False,
+        )
+        cli.cmd_create(args2)
+
+        p1 = self.profiles_dir / "first"
+        p2 = self.profiles_dir / "second"
+
+        # Both should point to the same shared file
+        self.assertEqual(
+            (p1 / ".mcp.json").resolve(),
+            (p2 / ".mcp.json").resolve(),
+        )
+
+    def test_missing_default_linked_files_skipped(self):
+        """Files not present in source or shared dir are silently skipped."""
+        # Only create settings.json, not settings.local.json or .mcp.json
+        self._populate_claude_dir()
+
+        args = argparse.Namespace(
+            name="partial", from_current=True, from_profile=None,
+            description="", activate=False, no_shared_defaults=False,
+        )
+        cli.cmd_create(args)
+
+        pdir = self.profiles_dir / "partial"
+        # settings.json should be linked (it existed)
+        self.assertTrue((pdir / "settings.json").is_symlink())
+        # settings.local.json and .mcp.json should not exist (weren't in source)
+        self.assertFalse((pdir / "settings.local.json").exists())
+        self.assertFalse((pdir / ".mcp.json").exists())
+
+    def test_link_defaults_replaces_existing_file(self):
+        """link_defaults_into_profile replaces a real file with a symlink."""
+        self.shared_dir.mkdir(parents=True)
+        (self.shared_dir / "settings.json").write_text('{"shared": true}')
+
+        pdir = self.profiles_dir / "replace"
+        pdir.mkdir(parents=True)
+        (pdir / "settings.json").write_text('{"old": true}')
+        cli.save_manifest(pdir, ["settings.json"])
+
+        cli.link_defaults_into_profile(pdir)
+
+        self.assertTrue((pdir / "settings.json").is_symlink())
+        content = json.loads((pdir / "settings.json").read_text())
+        self.assertEqual(content, {"shared": True})
+
 
 if __name__ == "__main__":
     unittest.main()

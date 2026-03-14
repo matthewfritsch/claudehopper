@@ -11,8 +11,11 @@ import datetime
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 CLAUDE_DIR = Path.home() / ".claude"
@@ -23,7 +26,18 @@ CONFIG_FILE = HOPPER_DIR / "config.json"
 MANIFEST_NAME = ".hop-manifest.json"
 BACKUP_SUFFIX = ".hop-backup"
 
+SHARED_DIR = HOPPER_DIR / "shared"
 USAGE_FILE_NAME = "usage.jsonl"
+UPDATE_CHECK_FILE = "last-update-check.json"
+GITHUB_REPO = "matthewfritsch/claudehopper"
+
+# Paths linked across all profiles by default (permissions, MCP config).
+# These live in ~/.config/claudehopper/shared/ and are symlinked into each profile.
+DEFAULT_LINKED = {
+    "settings.json",
+    "settings.local.json",
+    ".mcp.json",
+}
 
 # These belong to Claude Code itself — never profile-managed
 SHARED_PATHS = {
@@ -44,6 +58,69 @@ SHARED_PATHS = {
 def die(msg: str):
     print(f"error: {msg}", file=sys.stderr)
     sys.exit(1)
+
+
+def _prompt(msg: str) -> str:
+    """Prompt the user for input. Extracted for testability."""
+    try:
+        return input(msg).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return "n"
+
+
+def ensure_shared_defaults():
+    """Ensure ~/.config/claudehopper/shared/ exists with default linked files.
+
+    On first run, if the shared dir doesn't exist, copies any matching files
+    from the first profile or creates empty defaults.
+    """
+    if SHARED_DIR.exists():
+        return
+    SHARED_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def link_defaults_into_profile(pdir: Path, from_source: Path | None = None):
+    """Link DEFAULT_LINKED files from shared dir into a profile.
+
+    If the shared dir doesn't have a file yet but from_source does,
+    moves the file into shared first (bootstrapping).
+    """
+    ensure_shared_defaults()
+    shared_paths = get_shared_paths(pdir)
+    managed = get_managed_paths(pdir)
+
+    for filename in DEFAULT_LINKED:
+        shared_file = SHARED_DIR / filename
+        profile_file = pdir / filename
+
+        # Bootstrap: if shared dir doesn't have it yet, seed from source
+        if not shared_file.exists() and from_source:
+            source_file = from_source / filename
+            if source_file.exists() and not source_file.is_symlink():
+                shutil.copy2(source_file, shared_file)
+            elif source_file.is_symlink():
+                # Follow the symlink and copy the real content
+                resolved = source_file.resolve()
+                if resolved.exists():
+                    shutil.copy2(resolved, shared_file)
+
+        if not shared_file.exists():
+            continue
+
+        # Replace the profile's copy with a symlink to shared
+        if profile_file.exists() or profile_file.is_symlink():
+            if profile_file.is_dir() and not profile_file.is_symlink():
+                shutil.rmtree(profile_file)
+            else:
+                profile_file.unlink()
+
+        profile_file.symlink_to(shared_file)
+        shared_paths[filename] = "(shared)"
+        if filename not in managed:
+            managed.append(filename)
+
+    save_manifest(pdir, managed, shared_paths=shared_paths)
 
 
 def record_usage(profile: str, action: str):
@@ -239,11 +316,154 @@ def link_managed_path(pdir: Path, p: str):
     link = CLAUDE_DIR / p
     if link.is_symlink():
         link.unlink()
+    elif link.is_dir():
+        # Real directory in the way — back it up before replacing
+        bak = backup_path(link)
+        link.rename(bak)
+    elif link.exists():
+        link.unlink()
     if src.exists() or src.is_symlink():
         target = src.resolve() if not src.is_symlink() else src
         atomic_symlink(target, link)
         return True
     return False
+
+
+# ── Update Checking ───────────────────────────────────────────────────────
+
+
+def _get_current_version() -> str:
+    try:
+        return __import__("claudehopper").__version__
+    except Exception:
+        return "dev"
+
+
+def _fetch_latest_release() -> dict | None:
+    """Fetch latest release info from GitHub. Returns None on any failure."""
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+    try:
+        req = urllib.request.Request(url, headers={"Accept": "application/vnd.github.v3+json"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return json.loads(resp.read().decode())
+    except Exception:
+        return None
+
+
+def _parse_version(tag: str) -> tuple:
+    """Parse 'v1.2.3' or '1.2.3' into (1, 2, 3) for comparison."""
+    tag = tag.lstrip("v")
+    try:
+        return tuple(int(x) for x in tag.split("."))
+    except (ValueError, AttributeError):
+        return (0,)
+
+
+def _check_update_cached() -> str | None:
+    """Check for updates, caching results for 24 hours. Returns new version or None."""
+    cache_file = HOPPER_DIR / UPDATE_CHECK_FILE
+    now = datetime.datetime.now()
+
+    # Check cache first
+    if cache_file.exists():
+        try:
+            cache = json.loads(cache_file.read_text())
+            checked_at = datetime.datetime.fromisoformat(cache["checked_at"])
+            if (now - checked_at).total_seconds() < 86400:  # 24 hours
+                latest = cache.get("latest_version")
+                current = _get_current_version()
+                if latest and _parse_version(latest) > _parse_version(current):
+                    return latest
+                return None
+        except Exception:
+            pass
+
+    # Fetch fresh
+    release = _fetch_latest_release()
+    latest_version = None
+    if release:
+        latest_version = release.get("tag_name", "").lstrip("v")
+        try:
+            HOPPER_DIR.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(json.dumps({
+                "checked_at": now.isoformat(),
+                "latest_version": latest_version,
+            }) + "\n")
+        except Exception:
+            pass
+
+    current = _get_current_version()
+    if latest_version and _parse_version(latest_version) > _parse_version(current):
+        return latest_version
+    return None
+
+
+def _print_update_notice():
+    """Print a one-liner if an update is available. Never raises."""
+    try:
+        new_version = _check_update_cached()
+        if new_version:
+            current = _get_current_version()
+            print(f"\nUpdate available: {current} → {new_version}"
+                  f"  (run 'hop update' to install)\n")
+    except Exception:
+        pass
+
+
+def cmd_update(args):
+    """Check for and install updates from GitHub."""
+    current = _get_current_version()
+
+    if args.check:
+        print(f"Current version: {current}")
+        print(f"Checking GitHub ({GITHUB_REPO})...")
+        release = _fetch_latest_release()
+        if not release:
+            print("Could not reach GitHub. Check your connection.")
+            return
+        latest = release.get("tag_name", "").lstrip("v")
+        if _parse_version(latest) > _parse_version(current):
+            print(f"New version available: {latest}")
+            print(f"  Release: {release.get('html_url', '')}")
+            print(f"\nRun 'hop update' to install.")
+        else:
+            print(f"You're up to date (latest: {latest}).")
+        return
+
+    # Install update
+    print(f"Current version: {current}")
+    print(f"Checking GitHub ({GITHUB_REPO})...")
+    release = _fetch_latest_release()
+    if not release:
+        print("Could not reach GitHub. Check your connection.")
+        return
+
+    latest = release.get("tag_name", "").lstrip("v")
+    if _parse_version(latest) <= _parse_version(current):
+        print(f"Already up to date (v{current}).")
+        return
+
+    print(f"Updating to v{latest}...")
+    repo_url = f"git+https://github.com/{GITHUB_REPO}"
+    try:
+        result = subprocess.run(
+            ["uv", "tool", "install", "--reinstall", repo_url],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            print(f"Updated to v{latest}.")
+            # Clear cache so next check picks up the new version
+            cache_file = HOPPER_DIR / UPDATE_CHECK_FILE
+            if cache_file.exists():
+                cache_file.unlink()
+        else:
+            print("Update failed. Try manually:")
+            print(f"  uv tool install --reinstall {repo_url}")
+            if result.stderr:
+                print(f"\n{result.stderr.strip()}")
+    except FileNotFoundError:
+        print("'uv' not found. Install manually:")
+        print(f"  pip install --upgrade git+https://github.com/{GITHUB_REPO}")
 
 
 # ── Commands ──────────────────────────────────────────────────────────────
@@ -293,6 +513,8 @@ def cmd_status(_args):
             src = pdir / p
             status = "not linked" + ("" if src.exists() else " (missing in profile)")
         print(f"  {p}  [{status}]")
+
+    _print_update_notice()
 
 
 def cmd_list(_args):
@@ -383,10 +605,72 @@ def cmd_create(args):
         manifest["created_from"] = created_from
         (pdir / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2) + "\n")
 
+    # Link default shared files (permissions, MCP) unless opted out
+    if not args.no_shared_defaults:
+        source = pdir if args.from_current or args.from_profile else None
+        link_defaults_into_profile(pdir, from_source=source)
+
     record_usage(name, "create")
 
 
-def _do_switch(name: str, force: bool = False, dry_run: bool = False):
+def detect_unmanaged(current_profile: str) -> list[str]:
+    """Find files in ~/.claude/ not managed by the current profile and not shared."""
+    current_dir = profile_dir(current_profile)
+    managed = set(get_managed_paths(current_dir))
+    unmanaged = []
+    if not CLAUDE_DIR.exists():
+        return unmanaged
+    for item in sorted(CLAUDE_DIR.iterdir()):
+        name = item.name
+        if name in SHARED_PATHS:
+            continue
+        if name.startswith(".hop-") or name.endswith(BACKUP_SUFFIX):
+            continue
+        if name.startswith(".ccswap"):
+            continue
+        if name in managed:
+            continue
+        # Skip symlinks pointing into shared dir
+        if item.is_symlink():
+            try:
+                if str(item.resolve()).startswith(str(SHARED_DIR.resolve())):
+                    continue
+            except OSError:
+                pass
+        unmanaged.append(name)
+    return unmanaged
+
+
+def adopt_unmanaged(profile_name: str, paths: list[str]):
+    """Move unmanaged files from ~/.claude/ into the given profile."""
+    pdir = profile_dir(profile_name)
+    managed = get_managed_paths(pdir)
+    shared_paths = get_shared_paths(pdir)
+
+    for p in paths:
+        src = CLAUDE_DIR / p
+        dst = pdir / p
+        if src.is_symlink():
+            # Preserve symlink as-is
+            if dst.exists() or dst.is_symlink():
+                if dst.is_dir() and not dst.is_symlink():
+                    shutil.rmtree(dst)
+                else:
+                    dst.unlink()
+            os.symlink(os.readlink(src), dst)
+        elif src.is_dir():
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst, symlinks=True, copy_function=shutil.copy2)
+        elif src.is_file():
+            shutil.copy2(src, dst)
+        if p not in managed:
+            managed.append(p)
+
+    save_manifest(pdir, managed, shared_paths=shared_paths)
+
+
+def _do_switch(name: str, force: bool = False, dry_run: bool = False, adopt: bool = False):
     """Core switch logic. Validates everything before touching any files."""
     pdir = require_profile(name)
 
@@ -407,9 +691,30 @@ def _do_switch(name: str, force: bool = False, dry_run: bool = False):
 
     CLAUDE_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Detect unmanaged files before switching away
     if current:
         current_dir = profile_dir(current)
         if current_dir.exists():
+            unmanaged = detect_unmanaged(current)
+            if unmanaged:
+                print(f"Unmanaged files detected in ~/.claude/ (not tracked by '{current}'):")
+                for p in unmanaged:
+                    item = CLAUDE_DIR / p
+                    kind = "dir" if item.is_dir() and not item.is_symlink() else "file"
+                    print(f"  {p} ({kind})")
+                print()
+                if adopt:
+                    answer = "y"
+                else:
+                    answer = _prompt(f"Adopt these into '{current}' before switching? [Y/n/skip] ")
+                if answer in ("", "y", "yes"):
+                    adopt_unmanaged(current, unmanaged)
+                    print(f"Adopted {len(unmanaged)} paths into '{current}'")
+                elif answer in ("skip", "s"):
+                    print("Skipping — files will remain in ~/.claude/")
+                else:
+                    print("Skipping — files will remain in ~/.claude/")
+
             for p in get_managed_paths(current_dir):
                 link = CLAUDE_DIR / p
                 if link.is_symlink():
@@ -435,7 +740,7 @@ def _do_switch(name: str, force: bool = False, dry_run: bool = False):
 
 
 def cmd_switch(args):
-    _do_switch(args.name, force=args.force, dry_run=args.dry_run)
+    _do_switch(args.name, force=args.force, dry_run=args.dry_run, adopt=args.adopt)
 
 
 def cmd_pick(args):
@@ -990,6 +1295,8 @@ def main():
     p_create.add_argument("--description", "-d", help="Short description for this profile")
     p_create.add_argument("--activate", action="store_true",
                           help="Switch to the new profile immediately after creating it")
+    p_create.add_argument("--no-shared-defaults", action="store_true",
+                          help="Don't link shared files (permissions, MCP) into this profile")
 
     # switch
     p_switch = sub.add_parser("switch", aliases=["sw"], help="Switch active profile",
@@ -1007,6 +1314,8 @@ def main():
                           help="Force switch, backing up any conflicting unmanaged files")
     p_switch.add_argument("--dry-run", "-n", action="store_true",
                           help="Show what would change without touching anything")
+    p_switch.add_argument("--adopt", "-a", action="store_true",
+                          help="Automatically adopt unmanaged files into the current profile before switching")
 
     # pick
     p_pick = sub.add_parser("pick", help="Copy files from one profile into another",
@@ -1129,6 +1438,17 @@ def main():
     p_stats.add_argument("--since", help="Only show usage after this date (YYYY-MM-DD)")
     p_stats.add_argument("--json", action="store_true", help="Output as JSON")
 
+    # update
+    p_update = sub.add_parser("update", help="Check for and install updates",
+                              formatter_class=fmt,
+                              description="Check GitHub for a newer release and optionally install it.\n"
+                                          "Uses 'uv tool install --reinstall' to update in place.",
+                              epilog="Examples:\n"
+                                     "  hop update              # install latest from GitHub\n"
+                                     "  hop update --check      # just check, don't install")
+    p_update.add_argument("--check", "-c", action="store_true",
+                          help="Only check for updates, don't install")
+
     args = parser.parse_args()
 
     commands = {
@@ -1149,6 +1469,7 @@ def main():
         "path": cmd_path,
         "tree": cmd_tree,
         "stats": cmd_stats,
+        "update": cmd_update,
     }
 
     fn = commands.get(args.command, cmd_status)
