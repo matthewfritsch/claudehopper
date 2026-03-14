@@ -1,0 +1,13 @@
+[project]
+name = "claude-swap"
+version = "0.1.0"
+description = "Switch between Claude Code configuration profiles"
+requires-python = ">=3.10"
+license = "MIT"
+
+[project.scripts]
+ccswap = "claude_swap.cli:main"
+
+[build-system]
+requires = ["uv-build"]
+build-backend = "uv_build"
