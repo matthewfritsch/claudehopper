@@ -12,7 +12,7 @@ claudehopper-go ports a working Python CLI tool to Go, delivering instant symlin
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Go module scaffold, Cobra CLI skeleton, atomic symlink engine, config/path resolution, and protected-paths enforcement
+- [x] **Phase 1: Foundation** - Go module scaffold, Cobra CLI skeleton, atomic symlink engine, config/path resolution, and protected-paths enforcement (completed 2026-03-14)
 - [ ] **Phase 2: Core Profile Operations** - Full profile CRUD, switch with atomic replacement and safety features, manifest format compatibility with Python version
 - [ ] **Phase 3: Extended Features** - File sharing, profile visualization, usage tracking, and the unmanage escape hatch
 - [ ] **Phase 4: Polish & Distribution** - Update checking, goreleaser dual-binary release, shell completions verification, and version injection
@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal**: A compilable, testable Go module exists with the load-bearing infrastructure that all profile operations depend on
 **Depends on**: Nothing (first phase)
 **Requirements**: SAFE-01, SAFE-03, DIST-02, DIST-04
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 01-01-PLAN.md — Go module scaffold, Cobra CLI skeleton, and dual-binary build tooling
@@ -77,7 +77,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/3 | In Progress|  |
+| 1. Foundation | 3/3 | Complete   | 2026-03-14 |
 | 2. Core Profile Operations | 0/TBD | Not started | - |
 | 3. Extended Features | 0/TBD | Not started | - |
 | 4. Polish & Distribution | 0/TBD | Not started | - |

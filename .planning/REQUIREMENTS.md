@@ -30,7 +30,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SAFE-01**: Protected paths (credentials, history, projects, cache) are never touched during any operation
 - [ ] **SAFE-02**: Each profile has a `.hop-manifest.json` tracking managed_paths, shared_paths, description, created_from
-- [ ] **SAFE-03**: Manifest and config.json formats are compatible with the Python claudehopper version
+- [x] **SAFE-03**: Manifest and config.json formats are compatible with the Python claudehopper version
 
 ### File Sharing
 
@@ -102,7 +102,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SWCH-06 | Phase 2 | Pending |
 | SAFE-01 | Phase 1 | Complete |
 | SAFE-02 | Phase 2 | Pending |
-| SAFE-03 | Phase 1 | Pending |
+| SAFE-03 | Phase 1 | Complete |
 | SHAR-01 | Phase 3 | Pending |
 | SHAR-02 | Phase 3 | Pending |
 | SHAR-03 | Phase 3 | Pending |
