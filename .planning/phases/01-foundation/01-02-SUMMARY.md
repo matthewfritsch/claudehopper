@@ -83,7 +83,7 @@ Each task was committed atomically using TDD (test commit then implementation co
 3. **Task 2: IsProtected RED** — `9d1de58` (test)
 4. **Task 2: IsProtected GREEN** — `1869e0d` (feat)
 
-**Plan metadata:** (docs commit — created next)
+**Plan metadata:** `7c589d6` (docs: complete atomic symlink engine and protected-paths plan)
 
 _Note: TDD tasks have two commits each (test RED → feat GREEN)_
 
@@ -119,6 +119,20 @@ None - no external service configuration required.
 - Both safety primitives are ready for consumption by Phase 2 profile management
 - Any code that switches profiles must call AtomicSymlink — os.Remove + os.Symlink is never acceptable
 - Any code that touches ~/.claude entries must call IsProtected before mutation — guarding .credentials.json, history.jsonl, projects, cache, downloads, transcripts, shell-snapshots, file-history, backups, session-env, .session-stats.json
+
+## Self-Check: PASSED
+
+- internal/fs/atomic.go: FOUND
+- internal/fs/atomic_test.go: FOUND
+- internal/fs/protected.go: FOUND
+- internal/fs/protected_test.go: FOUND
+- internal/fs/testdata/python_shared_paths.txt: FOUND
+- .planning/phases/01-foundation/01-02-SUMMARY.md: FOUND
+- Commit c981eeb: FOUND
+- Commit 6be4c6b: FOUND
+- Commit 9d1de58: FOUND
+- Commit 1869e0d: FOUND
+- Commit 7c589d6: FOUND
 
 ---
 *Phase: 01-foundation*
