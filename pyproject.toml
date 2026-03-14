@@ -1,0 +1,19 @@
+[project]
+name = "claudehopper"
+version = "0.2.0"
+description = "Switch between Claude Code configuration profiles"
+requires-python = ">=3.10"
+license = "MIT"
+
+[project.scripts]
+claudehopper = "claudehopper.cli:main"
+hop = "claudehopper.cli:main"
+
+[build-system]
+requires = ["uv-build"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
