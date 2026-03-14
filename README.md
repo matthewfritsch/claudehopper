@@ -18,21 +18,95 @@ Both `claudehopper` and `hop` invoke the same CLI.
 
 ## Quick Start
 
+### Option A: Let Claude set it up for you
+
+Paste this into Claude Code:
+
+```
+Set up claudehopper for me. Read the setup guide at docs/claude-setup-guide.md
+in the claudehopper repo, then follow it to create profiles from my current
+~/.claude/ configuration.
+```
+
+Or, if you haven't cloned the repo, give Claude this prompt:
+
+```
+Install claudehopper (uv tool install claudehopper), then:
+1. Run `claudehopper status` to see my current ~/.claude/ contents
+2. Create a profile from my current setup with a descriptive name and --activate
+3. Create a "vanilla" profile for clean Claude Code without plugins
+4. Run `claudehopper tree` to show me what was set up
+```
+
+Claude will analyze your `~/.claude/` directory, name profiles based on what's installed (e.g., "omc" if you have oh-my-claudecode), and set everything up automatically.
+
+### Option B: Manual setup
+
 ```bash
 # See what's currently active
 claudehopper status
 
 # Create a profile from your current config
-claudehopper create work --from-current --description "Work projects setup"
+claudehopper create work --from-current --description "Work projects setup" --activate
 
 # Create a fresh profile
-claudehopper create personal --description "Personal experiments"
+claudehopper create vanilla --description "Clean Claude Code"
 
 # Switch to a profile
 hop switch work
 
 # List all profiles
 hop list
+```
+
+## Examples
+
+### Separate work and personal configs
+
+```bash
+# Capture your current setup as "work"
+claudehopper create work --from-current --description "Work - strict mode" --activate
+
+# Clone it for personal use, then customize
+claudehopper create personal --from-profile work --description "Personal experiments"
+hop switch personal
+# Edit ~/.claude/CLAUDE.md, ~/.claude/settings.json to taste
+hop switch work   # back to work mode
+```
+
+### Share MCP servers across profiles
+
+```bash
+# Your "work" profile has MCP servers you want everywhere
+hop share work .mcp.json --target personal
+
+# Now both profiles use the same .mcp.json — edit once, applies to both
+```
+
+### Keep a clean baseline
+
+```bash
+# Create a vanilla profile with no plugins or customizations
+claudehopper create vanilla --description "Stock Claude Code"
+
+# When you want clean Claude behavior:
+hop switch vanilla
+
+# Back to your full setup:
+hop switch work
+```
+
+### See what you use most
+
+```bash
+# Usage stats across all profiles
+hop stats
+
+# Just one profile
+hop stats --profile work
+
+# Machine-readable
+hop stats --json
 ```
 
 ## Command Reference
@@ -136,6 +210,26 @@ Migrate an existing `~/.claude-swap/` setup (legacy tool) to claudehopper profil
 
 ```bash
 claudehopper migrate
+```
+
+### `tree`
+
+Show all profiles as a visual tree with lineage and shared file relationships.
+
+```bash
+claudehopper tree
+claudehopper tree --json
+```
+
+### `stats`
+
+Show profile usage statistics — switch counts, last used times, and more.
+
+```bash
+claudehopper stats
+claudehopper stats --profile work
+claudehopper stats --since 2025-01-01
+claudehopper stats --json
 ```
 
 ### `path <name>`
