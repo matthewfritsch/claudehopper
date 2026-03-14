@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-14T17:23:34.814Z"
+stopped_at: Completed 01-foundation 01-01-PLAN.md
+last_updated: "2026-03-14T17:42:39.247Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-foundation P01 | 2 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,8 @@ Recent decisions affecting current work:
 - Maintain Python manifest/config format compatibility (fixture tests required before serialization)
 - `google/renameio/v2` for atomic symlinks; never `os.Remove` + `os.Symlink`
 - Use `os.Lstat` (not `os.Stat`) everywhere we interrogate managed symlinks
+- [Phase 01-foundation]: Single main.go entry point with goreleaser dual build stanzas producing both claudehopper and hop binary names
+- [Phase 01-foundation]: No Windows builds in goreleaser — renameio/v2 does not support atomic symlinks on Windows
 
 ### Pending Todos
 
@@ -75,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T17:23:34.810Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation/01-CONTEXT.md
+Last session: 2026-03-14T17:42:39.242Z
+Stopped at: Completed 01-foundation 01-01-PLAN.md
+Resume file: None
