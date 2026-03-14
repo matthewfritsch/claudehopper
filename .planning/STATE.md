@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-foundation 01-01-PLAN.md
-last_updated: "2026-03-14T17:42:39.247Z"
+stopped_at: Completed 01-foundation 01-02-PLAN.md
+last_updated: "2026-03-14T17:46:40.857Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 2 | 2 tasks | 7 files |
+| Phase 01-foundation P02 | 5min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - Use `os.Lstat` (not `os.Stat`) everywhere we interrogate managed symlinks
 - [Phase 01-foundation]: Single main.go entry point with goreleaser dual build stanzas producing both claudehopper and hop binary names
 - [Phase 01-foundation]: No Windows builds in goreleaser — renameio/v2 does not support atomic symlinks on Windows
+- [Phase 01-foundation]: IsProtected accepts bare names only — paths with separators return false, matching top-level caller contract
+- [Phase 01-foundation]: Drift-detection test uses bidirectional fixture comparison for Python SHARED_PATHS parity
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T17:42:39.242Z
-Stopped at: Completed 01-foundation 01-01-PLAN.md
+Last session: 2026-03-14T17:46:40.852Z
+Stopped at: Completed 01-foundation 01-02-PLAN.md
 Resume file: None
