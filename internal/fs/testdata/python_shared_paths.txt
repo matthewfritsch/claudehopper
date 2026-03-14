@@ -1,0 +1,11 @@
+.credentials.json
+history.jsonl
+projects
+cache
+downloads
+transcripts
+shell-snapshots
+file-history
+backups
+session-env
+.session-stats.json
