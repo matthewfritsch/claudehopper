@@ -16,12 +16,15 @@ func isInteractive() bool {
 	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
-// claudeDir returns the path to the ~/.claude directory, which is the
-// managed directory that claudehopper creates symlinks in.
+// claudeDir returns the path to the Claude Code config directory.
+// If CLAUDE_DIR is set, it is used as-is (for development/testing).
+// Otherwise defaults to ~/.claude.
 func claudeDir() string {
+	if override := os.Getenv("CLAUDE_DIR"); override != "" {
+		return override
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		// Fallback if $HOME is unset
 		return filepath.Join(os.Getenv("HOME"), ".claude")
 	}
 	return filepath.Join(home, ".claude")

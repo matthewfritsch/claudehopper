@@ -11,9 +11,13 @@ import (
 )
 
 // ConfigDir returns the claudehopper configuration directory.
-// On Linux, it respects XDG_CONFIG_HOME when set; otherwise falls back to
+// If CLAUDEHOPPER_HOME is set, it is used as-is (for development/testing).
+// Otherwise, respects XDG_CONFIG_HOME on Linux; falls back to
 // $HOME/.config/claudehopper. The returned path is always absolute.
 func ConfigDir() (string, error) {
+	if override := os.Getenv("CLAUDEHOPPER_HOME"); override != "" {
+		return override, nil
+	}
 	base, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine config dir: %w", err)
