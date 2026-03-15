@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-14T23:35:52.574Z"
+stopped_at: Completed 02-core-profile-operations 02-01-PLAN.md
+last_updated: "2026-03-15T00:05:12.561Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 7
+  completed_plans: 4
   percent: 0
 ---
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-foundation P01 | 2 | 2 tasks | 7 files |
 | Phase 01-foundation P02 | 5min | 2 tasks | 7 files |
 | Phase 01-foundation P03 | 7 | 2 tasks | 8 files |
+| Phase 02-core-profile-operations P01 | 35min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: os.UserConfigDir() for XDG paths (no extra dependency)
 - [Phase 01-foundation]: LoadConfig returns zero Config for missing file — simplifies first-run initialization
 - [Phase 01-foundation]: SaveManifest sorts ManagedPaths on write — callers can append without managing order
+- [Phase 02-core-profile-operations]: CreatedFrom placed first in Manifest struct for Python field-order parity
+- [Phase 02-core-profile-operations]: Explicit dir params pattern: create functions accept dir paths directly, never call config.ProfilesDir internally — enables t.TempDir() test isolation
+- [Phase 02-core-profile-operations]: CreateFromCurrent records existing symlinks in shared_paths not managed_paths — symlinks are shared data, not owned by the profile
 
 ### Pending Todos
 
@@ -85,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:35:52.571Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-core-profile-operations/02-CONTEXT.md
+Last session: 2026-03-15T00:05:12.558Z
+Stopped at: Completed 02-core-profile-operations 02-01-PLAN.md
+Resume file: None

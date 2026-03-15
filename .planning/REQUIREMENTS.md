@@ -9,13 +9,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Profile Management
 
-- [ ] **PROF-01**: User can create a blank profile with a name and optional description
-- [ ] **PROF-02**: User can create a profile from their current `~/.claude/` config (`--from-current`)
-- [ ] **PROF-03**: User can clone an existing profile (`--from-profile`) with lineage tracked in manifest
+- [x] **PROF-01**: User can create a blank profile with a name and optional description
+- [x] **PROF-02**: User can create a profile from their current `~/.claude/` config (`--from-current`)
+- [x] **PROF-03**: User can clone an existing profile (`--from-profile`) with lineage tracked in manifest
 - [ ] **PROF-04**: User can list all profiles showing name, active marker, and managed path count
 - [ ] **PROF-05**: User can view status of active profile with link health per managed path
 - [ ] **PROF-06**: User can delete a profile with warning if other profiles depend on it
-- [ ] **PROF-07**: User can create and immediately activate a profile (`--activate`)
+- [x] **PROF-07**: User can create and immediately activate a profile (`--activate`)
 
 ### Profile Switching
 
@@ -29,7 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Safety & Compatibility
 
 - [x] **SAFE-01**: Protected paths (credentials, history, projects, cache) are never touched during any operation
-- [ ] **SAFE-02**: Each profile has a `.hop-manifest.json` tracking managed_paths, shared_paths, description, created_from
+- [x] **SAFE-02**: Each profile has a `.hop-manifest.json` tracking managed_paths, shared_paths, description, created_from
 - [x] **SAFE-03**: Manifest and config.json formats are compatible with the Python claudehopper version
 
 ### File Sharing
@@ -37,7 +37,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SHAR-01**: User can symlink files between profiles (`hop share`)
 - [ ] **SHAR-02**: User can copy files between profiles independently (`hop pick`)
 - [ ] **SHAR-03**: User can materialize shared symlinks back to independent copies (`hop unshare`)
-- [ ] **SHAR-04**: New profiles automatically share default linked files (settings.json, settings.local.json, .mcp.json)
+- [x] **SHAR-04**: New profiles automatically share default linked files (settings.json, settings.local.json, .mcp.json)
 
 ### Visualization & Analysis
 
@@ -87,13 +87,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PROF-01 | Phase 2 | Pending |
-| PROF-02 | Phase 2 | Pending |
-| PROF-03 | Phase 2 | Pending |
+| PROF-01 | Phase 2 | Complete |
+| PROF-02 | Phase 2 | Complete |
+| PROF-03 | Phase 2 | Complete |
 | PROF-04 | Phase 2 | Pending |
 | PROF-05 | Phase 2 | Pending |
 | PROF-06 | Phase 2 | Pending |
-| PROF-07 | Phase 2 | Pending |
+| PROF-07 | Phase 2 | Complete |
 | SWCH-01 | Phase 2 | Pending |
 | SWCH-02 | Phase 2 | Pending |
 | SWCH-03 | Phase 2 | Pending |
@@ -101,12 +101,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SWCH-05 | Phase 2 | Pending |
 | SWCH-06 | Phase 2 | Pending |
 | SAFE-01 | Phase 1 | Complete |
-| SAFE-02 | Phase 2 | Pending |
+| SAFE-02 | Phase 2 | Complete |
 | SAFE-03 | Phase 1 | Complete |
 | SHAR-01 | Phase 3 | Pending |
 | SHAR-02 | Phase 3 | Pending |
 | SHAR-03 | Phase 3 | Pending |
-| SHAR-04 | Phase 2 | Pending |
+| SHAR-04 | Phase 2 | Complete |
 | VIZ-01 | Phase 3 | Pending |
 | VIZ-02 | Phase 3 | Pending |
 | VIZ-03 | Phase 3 | Pending |
