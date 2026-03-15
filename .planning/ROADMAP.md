@@ -60,12 +60,19 @@ Plans:
 **Goal**: Users have full file-sharing between profiles, rich visualization commands, usage tracking, and a clean exit ramp from the tool
 **Depends on**: Phase 2
 **Requirements**: SHAR-01, SHAR-02, SHAR-03, VIZ-01, VIZ-02, VIZ-03, VIZ-04, OPS-01, OPS-03
+**Plans:** 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Usage tracking package (RecordUsage/ReadUsage) and retroactive wiring into switch/create/delete
+- [ ] 03-02-PLAN.md — File sharing between profiles: share (symlink), pick (copy), unshare (materialize)
+- [ ] 03-03-PLAN.md — Profile visualization: lineage tree, side-by-side diff, and path printing
+- [ ] 03-04-PLAN.md — Usage statistics display and unmanage exit ramp
+
 **Success Criteria** (what must be TRUE):
   1. User can symlink a file from one profile into another (`hop share`), copy it independently (`hop pick`), and materialize shared symlinks back to independent files (`hop unshare`)
   2. User can view a profile lineage tree (`hop tree`) with parent-child relationships, compare two profiles side-by-side (`hop diff`), and print a profile's directory path for scripting (`hop path <name>`)
   3. `hop stats` shows accurate usage data drawn from `usage.jsonl` entries that are appended on every profile action
   4. User can stop using the tool entirely with `hop unmanage`, which materializes all symlinks to real files and leaves `~/.claude/` in a self-contained state
-**Plans**: TBD
 
 ### Phase 4: Polish & Distribution
 **Goal**: The tool is releasable: versioned binaries for all platforms, shell completions verified, and update checking working
@@ -86,5 +93,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
 | 2. Core Profile Operations | 4/4 | Complete    | 2026-03-15 |
-| 3. Extended Features | 0/TBD | Not started | - |
+| 3. Extended Features | 0/4 | Not started | - |
 | 4. Polish & Distribution | 0/TBD | Not started | - |
