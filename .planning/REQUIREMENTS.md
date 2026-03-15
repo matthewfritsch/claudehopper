@@ -41,10 +41,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Visualization & Analysis
 
-- [ ] **VIZ-01**: User can view profile lineage tree (`hop tree`) with optional `--json` output
-- [ ] **VIZ-02**: User can compare two profiles side-by-side (`hop diff`)
+- [x] **VIZ-01**: User can view profile lineage tree (`hop tree`) with optional `--json` output
+- [x] **VIZ-02**: User can compare two profiles side-by-side (`hop diff`)
 - [ ] **VIZ-03**: User can view usage statistics (`hop stats`) with optional `--json` output
-- [ ] **VIZ-04**: User can print a profile's directory path for scripting (`hop path <name>`)
+- [x] **VIZ-04**: User can print a profile's directory path for scripting (`hop path <name>`)
 
 ### Operations
 
@@ -107,10 +107,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHAR-02 | Phase 3 | Pending |
 | SHAR-03 | Phase 3 | Pending |
 | SHAR-04 | Phase 2 | Complete |
-| VIZ-01 | Phase 3 | Pending |
-| VIZ-02 | Phase 3 | Pending |
+| VIZ-01 | Phase 3 | Complete |
+| VIZ-02 | Phase 3 | Complete |
 | VIZ-03 | Phase 3 | Pending |
-| VIZ-04 | Phase 3 | Pending |
+| VIZ-04 | Phase 3 | Complete |
 | OPS-01 | Phase 3 | Pending |
 | OPS-02 | Phase 4 | Pending |
 | OPS-03 | Phase 3 | Complete |
