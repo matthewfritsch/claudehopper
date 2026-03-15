@@ -105,7 +105,7 @@ func runSwitch(_ *cobra.Command, args []string) error {
 	}
 
 	if switchDryRun {
-		// Print Python-format dry-run action list
+		// Print dry-run action list
 		for _, action := range result.Actions {
 			switch action.Action {
 			case "link":

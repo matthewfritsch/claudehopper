@@ -113,7 +113,7 @@ func fileContentsEqual(pathA, pathB string) bool {
 	return bytes.Equal(a, b)
 }
 
-// FormatDiff formats a DiffResult for display, matching the Python output format.
+// FormatDiff formats a DiffResult for display.
 // Empty sections are omitted. Common section merges identical and different
 // entries sorted alphabetically.
 //

@@ -9,7 +9,7 @@ import (
 )
 
 // DefaultLinked contains the file names that are shared across profiles by
-// default. This matches the Python DEFAULT_LINKED constant exactly.
+// default.
 var DefaultLinked = []string{
 	"settings.json",
 	"settings.local.json",

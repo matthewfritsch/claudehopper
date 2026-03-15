@@ -7,7 +7,7 @@ import (
 )
 
 // Config holds the claudehopper top-level configuration stored in config.json.
-// The JSON format is intentionally compatible with the Python version of claudehopper.
+// The JSON format uses 2-space-indented JSON with a trailing newline.
 type Config struct {
 	Active string `json:"active"`
 }
@@ -31,14 +31,13 @@ func LoadConfig(path string) (Config, error) {
 	return cfg, nil
 }
 
-// SaveConfig writes cfg to path as 2-space-indented JSON with a trailing newline,
-// matching the format produced by the Python version of claudehopper.
+// SaveConfig writes cfg to path as 2-space-indented JSON with a trailing newline.
 func SaveConfig(path string, cfg Config) error {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	// Append trailing newline to match Python json.dumps behavior
+	// Append trailing newline for clean file endings
 	data = append(data, '\n')
 	return os.WriteFile(path, data, 0644)
 }

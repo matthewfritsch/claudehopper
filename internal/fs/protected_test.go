@@ -10,8 +10,7 @@ import (
 	"github.com/matthewfritsch/claudehopper/internal/fs"
 )
 
-// TestIsProtected_True verifies each of the 11 Python SHARED_PATHS entries
-// individually returns true from IsProtected.
+// TestIsProtected_True verifies each protected path entry returns true.
 func TestIsProtected_True(t *testing.T) {
 	protected := []string{
 		".credentials.json",
@@ -55,11 +54,10 @@ func TestIsProtected_False(t *testing.T) {
 	}
 }
 
-// TestIsProtected_MatchesPythonConstants verifies the Go sharedPaths map has
-// exactly the same entries as the python_shared_paths.txt fixture — no extras,
-// no missing. This is the drift-detection test.
-func TestIsProtected_MatchesPythonConstants(t *testing.T) {
-	f, err := os.Open("testdata/python_shared_paths.txt")
+// TestIsProtected_MatchesFixture verifies the sharedPaths map has exactly the
+// same entries as the shared_paths.txt fixture — no extras, no missing.
+func TestIsProtected_MatchesFixture(t *testing.T) {
+	f, err := os.Open("testdata/shared_paths.txt")
 	if err != nil {
 		t.Fatalf("Failed to open fixture: %v", err)
 	}
@@ -107,11 +105,11 @@ func TestIsProtected_MatchesPythonConstants(t *testing.T) {
 
 	if len(missingInGo) > 0 {
 		sort.Strings(missingInGo)
-		t.Errorf("Paths in Python fixture but missing from Go sharedPaths: %v", missingInGo)
+		t.Errorf("Paths in fixture but missing from sharedPaths: %v", missingInGo)
 	}
 	if len(extraInGo) > 0 {
 		sort.Strings(extraInGo)
-		t.Errorf("Paths in Go sharedPaths but missing from Python fixture: %v", extraInGo)
+		t.Errorf("Paths in sharedPaths but missing from fixture: %v", extraInGo)
 	}
 }
 

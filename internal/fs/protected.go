@@ -7,10 +7,8 @@ import "sort"
 // they contain credentials, history, and shared data that belongs to the user
 // rather than to any specific profile.
 //
-// This set is copied from the Python source SHARED_PATHS constant and is
-// verified by TestIsProtected_MatchesPythonConstants to prevent drift.
-// If you add or remove entries here, update testdata/python_shared_paths.txt
-// to match.
+// If you add or remove entries here, update testdata/shared_paths.txt
+// to match — TestIsProtected_MatchesFixture verifies they stay in sync.
 var sharedPaths = map[string]struct{}{
 	".credentials.json":  {},
 	"history.jsonl":      {},

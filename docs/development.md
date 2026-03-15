@@ -69,7 +69,7 @@ The env var overrides (`CLAUDE_DIR`, `CLAUDEHOPPER_HOME`) only affect the CLI la
 
 ### Test fixtures
 
-Python-format JSON files are stored in `testdata/` directories alongside the test files that use them. These ensure round-trip compatibility with the Python version of claudehopper.
+JSON fixture files are stored in `testdata/` directories alongside the test files that use them. These ensure the expected formats are preserved across changes.
 
 ## Building
 

@@ -12,7 +12,7 @@ import (
 	"github.com/matthewfritsch/claudehopper/internal/config"
 )
 
-// Tree connector constants — match the Python version exactly.
+// Tree connector constants for ASCII tree rendering.
 const (
 	connectorMid  = "├── "
 	connectorLast = "└── "

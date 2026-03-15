@@ -18,8 +18,8 @@ Go CLI for managing Claude Code configuration profiles via symlink switching.
 - **os.Lstat** everywhere for symlink interrogation (never os.Stat).
 - **AtomicSymlink** for all symlink operations (never os.Remove + os.Symlink).
 - **Business logic in internal/, CLI wiring in cmd/** — cmd functions parse flags, call internal, format output.
-- **Protected paths** match Python version exactly — see `internal/fs/protected.go`.
-- **Format compatibility** — config.json and .hop-manifest.json must round-trip with the Python version.
+- **Protected paths** — see `internal/fs/protected.go`.
+- **Format compatibility** — config.json and .hop-manifest.json use stable JSON formats (2-space indent, trailing newline, sorted keys).
 - **Case-insensitive profile names** — normalized to lowercase.
 
 ## Testing

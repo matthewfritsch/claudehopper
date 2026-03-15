@@ -30,7 +30,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SAFE-01**: Protected paths (credentials, history, projects, cache) are never touched during any operation
 - [x] **SAFE-02**: Each profile has a `.hop-manifest.json` tracking managed_paths, shared_paths, description, created_from
-- [x] **SAFE-03**: Manifest and config.json formats are compatible with the Python claudehopper version
+- [x] **SAFE-03**: Manifest and config.json formats are compatible with the expected claudehopper format
 
 ### File Sharing
 
@@ -79,7 +79,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | Profile locking during Claude Code session | Process detection unreliable; partial lock worse than no lock |
 | Profile inheritance / merge semantics | Lineage tracking + share already covers the use case |
 | Profile encryption | Claude Code config generally not sensitive; protected paths handles credentials |
-| Config file format changes | Must remain compatible with existing Python version profiles |
+| Config file format changes | Must remain compatible with existing profiles |
 
 ## Traceability
 

@@ -148,15 +148,6 @@ hop completion fish > ~/.config/fish/completions/hop.fish
 hop completion powershell | Out-String | Invoke-Expression
 ```
 
-## Migrating from Python claudehopper
-
-The Go version reads and writes the same config and manifest formats as the Python version. Your existing profiles will work without changes:
-
-1. Install the Go version
-2. Run `hop list` — your profiles should appear
-3. Run `hop status` — verify link health
-4. Uninstall the Python version when ready: `uv tool uninstall claudehopper`
-
 ## For AI Agents
 
 If claudehopper is already installed and you're an AI agent helping the user manage profiles, run `hop status` to see the current state, then use `hop --help` and `hop <command> --help` for full usage. The key commands are `create`, `switch`, `share`, `pick`, and `tree`.

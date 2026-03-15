@@ -24,7 +24,7 @@ tech_stack:
   added: []
   patterns:
     - TDD red/green cycle for both packages
-    - Lexicographic timestamp comparison for since-filter (matches Python)
+    - Lexicographic timestamp comparison for since-filter
     - Protected-path guard using fs.IsProtected in unmanage path
     - copyFile/copyDirRecursive reuse from profile package (same package access)
 key_files:
@@ -37,7 +37,7 @@ key_files:
     - internal/usage/usage.go (added AggregateStats, FormatStats, ProfileStats, StatsResult)
     - internal/usage/usage_test.go (added 6 AggregateStats/FormatStats tests)
 decisions:
-  - "Lexicographic since-filter: compare entry.Timestamp >= sinceDate+'T00:00:00' matching Python behavior — no time.Parse needed"
+  - "Lexicographic since-filter: compare entry.Timestamp >= sinceDate+'T00:00:00' — no time.Parse needed"
   - "UnmanageActive is in profile package (not new package) to access unexported copyFile and copyDirRecursive"
   - "FormatStats right-aligns switch counts using %3d and pads profile names to max length for clean columns"
   - "relativeTime uses math.Round to avoid off-by-one on boundary minutes/hours"

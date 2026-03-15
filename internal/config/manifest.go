@@ -7,7 +7,7 @@ import (
 )
 
 // Manifest holds the content of a profile's .hop-manifest.json file.
-// The JSON format is intentionally compatible with the Python version of claudehopper:
+// JSON format:
 //   - managed_paths is a sorted JSON array of strings
 //   - shared_paths is an object mapping filename to source profile name
 //   - description is a plain string
@@ -54,8 +54,7 @@ func LoadManifest(path string) (Manifest, error) {
 	return m, nil
 }
 
-// SaveManifest writes m to path as 2-space-indented JSON with a trailing
-// newline, matching the format produced by the Python version of claudehopper.
+// SaveManifest writes m to path as 2-space-indented JSON with a trailing newline.
 // ManagedPaths is sorted alphabetically before writing. SharedPaths and
 // ManagedPaths never serialize as null even when empty.
 func SaveManifest(path string, m Manifest) error {
@@ -88,7 +87,7 @@ func SaveManifest(path string, m Manifest) error {
 	if err != nil {
 		return err
 	}
-	// Append trailing newline to match Python json.dumps behavior
+	// Append trailing newline for clean file endings
 	data = append(data, '\n')
 	return os.WriteFile(path, data, 0644)
 }

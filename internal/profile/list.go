@@ -73,7 +73,7 @@ func ListProfiles(profilesDir, configPath string) ([]ProfileSummary, error) {
 }
 
 // FormatProfileList formats a slice of ProfileSummary for display.
-// Format matches the Python version:
+// Format:
 //
 //	  name (active)  [N paths, M shared] - desc
 //	  name           [N paths] - desc

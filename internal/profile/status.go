@@ -121,8 +121,10 @@ func checkLinkHealth(name, linkPath, profileDir, sharedDir string) PathHealth {
 }
 
 // FormatProfileStatus formats a ProfileStatusInfo for display.
-// Format matches the Python version per-path output.
-func FormatProfileStatus(info ProfileStatusInfo) string {
+// When verbose is false, only a summary line is shown if all paths are healthy;
+// unhealthy paths are always listed individually.
+// When verbose is true, every path is listed with its health indicator.
+func FormatProfileStatus(info ProfileStatusInfo, verbose bool) string {
 	var sb strings.Builder
 
 	descPart := ""
@@ -136,27 +138,65 @@ func FormatProfileStatus(info ProfileStatusInfo) string {
 		return sb.String()
 	}
 
+	if verbose {
+		for _, ph := range info.Paths {
+			fmt.Fprintf(&sb, "  %s  %s\n", ph.Name, formatHealthLabel(ph))
+		}
+		return sb.String()
+	}
+
+	// Compact mode: summarize healthy paths, list unhealthy ones individually.
+	var linked, shared int
+	var unhealthy []PathHealth
 	for _, ph := range info.Paths {
-		var label string
 		switch ph.Status {
 		case "linked":
-			label = "[linked]"
+			linked++
 		case "shared":
-			if ph.Detail != "" {
-				label = fmt.Sprintf("[linked, shared from %s]", ph.Detail)
-			} else {
-				label = "[linked, shared]"
-			}
-		case "conflict":
-			label = "[CONFLICT]"
-		case "not-linked":
-			label = "[not linked]"
-		case "broken":
-			label = "[broken]"
+			shared++
 		default:
-			label = fmt.Sprintf("[%s]", ph.Status)
+			unhealthy = append(unhealthy, ph)
 		}
-		fmt.Fprintf(&sb, "  %s  %s\n", ph.Name, label)
 	}
+
+	healthy := linked + shared
+	total := len(info.Paths)
+
+	if len(unhealthy) == 0 {
+		// All paths healthy — single summary line.
+		if shared > 0 {
+			fmt.Fprintf(&sb, "  %d paths linked (%d shared)\n", total, shared)
+		} else {
+			fmt.Fprintf(&sb, "  %d paths linked\n", total)
+		}
+	} else {
+		// Mixed: summary + individual unhealthy paths.
+		fmt.Fprintf(&sb, "  %d/%d paths healthy\n", healthy, total)
+		for _, ph := range unhealthy {
+			fmt.Fprintf(&sb, "  %s  %s\n", ph.Name, formatHealthLabel(ph))
+		}
+	}
+
 	return sb.String()
+}
+
+// formatHealthLabel returns the display label for a single path's health.
+func formatHealthLabel(ph PathHealth) string {
+	switch ph.Status {
+	case "linked":
+		return "[linked]"
+	case "shared":
+		if ph.Detail != "" {
+			return fmt.Sprintf("[linked, shared from %s]", ph.Detail)
+		}
+		return "[linked, shared]"
+	case "conflict":
+		return "[CONFLICT]"
+	case "not-linked":
+		return "[not linked]"
+	case "broken":
+		return "[broken]"
+	default:
+		return fmt.Sprintf("[%s]", ph.Status)
+	}
 }

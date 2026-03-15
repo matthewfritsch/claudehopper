@@ -86,7 +86,7 @@ Each task was committed atomically:
 ## Decisions Made
 
 - ShareFiles uses `filepath.EvalSymlinks` to resolve source before creating target symlink — prevents chained symlinks (A->B->C becomes A->C directly)
-- UnshareFiles with empty paths argument unshares everything in shared_paths — consistent with Python behavior
+- UnshareFiles with empty paths argument unshares everything in shared_paths — consistent with expected behavior
 - All three Cobra commands re-link the active profile via DoSwitch(Force:true) after mutation to keep ~/.claude/ in sync with updated manifest
 - Test helpers prefixed (makeEmptyProfile, shareTestWriteFile, shareTestLoadManifest) to avoid redeclaration conflicts with existing test helpers across the package
 

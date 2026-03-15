@@ -17,8 +17,7 @@ import (
 	"time"
 )
 
-// UsageEntry records a single profile action. JSON field names match the
-// Python claudehopper format exactly.
+// UsageEntry records a single profile action.
 type UsageEntry struct {
 	Profile   string `json:"profile"`
 	Timestamp string `json:"timestamp"`
@@ -119,7 +118,7 @@ func AggregateStats(configDir, sinceDate, profileFilter string) (*StatsResult, e
 		return nil, err
 	}
 
-	// Build since cutoff string for lexicographic comparison (matches Python behavior)
+	// Build since cutoff string for lexicographic comparison
 	sincePrefix := ""
 	if sinceDate != "" {
 		sincePrefix = sinceDate + "T00:00:00"

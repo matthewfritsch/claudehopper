@@ -71,7 +71,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		if err := profile.CreateFromCurrent(profilesDir, cDir, sharedDir, name, createDescription); err != nil {
 			return err
 		}
-		// Display captured files matching Python output: list each file then summary
+		// Display captured files: list each file then summary
 		profileDir, err := config.ProfileDir(name)
 		if err != nil {
 			return fmt.Errorf("resolve profile dir: %w", err)

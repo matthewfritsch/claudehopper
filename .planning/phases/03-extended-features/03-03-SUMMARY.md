@@ -24,7 +24,7 @@ key_files:
     - internal/profile/shared.go
 decisions:
   - "Cycle detection in BuildTree uses fallback-to-first-alphabetical-root when all nodes are mutually created_from (complete cycle)"
-  - "FormatDiff merges identical and different into a single sorted Common section (Python parity)"
+  - "FormatDiff merges identical and different into a single sorted Common section"
   - "bytesEqual in tree.go and fileContentsEqual in diff.go are separate helpers (avoided collision)"
 metrics:
   duration: "~6 minutes"
@@ -48,7 +48,7 @@ metrics:
 
 1. **Cycle detection fallback:** When `BuildTree` finds all profiles in a mutual cycle (A created_from B, B created_from A), no natural root exists. The fix picks the alphabetically first node as the cycle-breaking root — prevents infinite loop and returns a non-empty result.
 
-2. **FormatDiff Common section:** Merged identical and different entries into a single `Common:` section sorted alphabetically, matching the Python output format. Original implementation had separate "Common files:" sections which didn't match tests.
+2. **FormatDiff Common section:** Merged identical and different entries into a single `Common:` section sorted alphabetically, matching the expected output format. Original implementation had separate "Common files:" sections which didn't match tests.
 
 3. **share.go implemented as Rule 3 fix:** `share_test.go` existed without a corresponding `share.go` implementation, preventing the profile package from compiling. Added `ShareFiles`, `PickFiles`, and `UnshareFiles` to unblock the build.
 

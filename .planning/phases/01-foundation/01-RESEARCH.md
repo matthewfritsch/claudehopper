@@ -16,8 +16,8 @@
 - For source installs, Claude decides alias mechanism (Makefile or similar)
 - stdlib `testing` package only — no testify or other test dependencies
 - Test fixtures in `testdata/` directories alongside test files (Go convention)
-- Real JSON files from Python version stored as fixtures for format compatibility checks
-- No automated cross-version fixture extraction — visual verification of Python constants is sufficient
+- Real JSON files stored as fixtures for format compatibility checks
+- No automated fixture extraction — visual verification of constants is sufficient
 - Claude decides test thoroughness per component based on risk level
 - Colored output with automatic TTY detection (colors when terminal, plain when piped)
 - Claude decides color library (fatih/color or similar) and exact error format
@@ -40,21 +40,21 @@ None — discussion stayed within phase scope
 
 | ID | Description | Research Support |
 |----|-------------|-----------------|
-| SAFE-01 | Protected paths (credentials, history, projects, cache) are never touched during any operation | Python SHARED_PATHS constants verified; `internal/fs.IsProtected()` function design documented |
-| SAFE-03 | Manifest and config.json formats are compatible with the Python claudehopper version | Live manifest and config.json files inspected; exact JSON schemas documented |
+| SAFE-01 | Protected paths (credentials, history, projects, cache) are never touched during any operation | SHARED_PATHS constants verified; `internal/fs.IsProtected()` function design documented |
+| SAFE-03 | Manifest and config.json formats are compatible with the expected claudehopper format | Live manifest and config.json files inspected; exact JSON schemas documented |
 | DIST-02 | Tool installs as both `hop` and `claudehopper` binary names | goreleaser dual-build pattern documented; Makefile `ln -sf` pattern for source installs |
 | DIST-04 | Every subcommand has `--help` and root has `--version` | Cobra version/help patterns fully documented; ldflags injection approach confirmed |
 </phase_requirements>
 
 ## Summary
 
-This phase scaffolds a greenfield Go module for `claudehopper`, a CLI tool that switches Claude Code configuration profiles. The Go rewrite must produce byte-for-byte compatible JSON manifests and config files with the existing Python version, enforce identical protected-path sets, and ship as two differently named binaries (`hop` and `claudehopper`).
+This phase scaffolds a greenfield Go module for `claudehopper`, a CLI tool that switches Claude Code configuration profiles. The Go implementation must produce byte-for-byte compatible JSON manifests and config files with the established format, enforce the correct protected-path sets, and ship as two differently named binaries (`hop` and `claudehopper`).
 
-The core technical challenges are: (1) atomic symlink replacement without ever leaving a broken state mid-operation, (2) identical protected-path constants with the Python source of truth, (3) `--version` that prints a real string (not `(devel)`) for both `go install` and release builds, and (4) dual binary distribution from a single `main.go`.
+The core technical challenges are: (1) atomic symlink replacement without ever leaving a broken state mid-operation, (2) correct protected-path constants matching the established set, (3) `--version` that prints a real string (not `(devel)`) for both `go install` and release builds, and (4) dual binary distribution from a single `main.go`.
 
 The stack is well-understood: Cobra v1.10.x for CLI (automatic `--help` on all commands, `--version` on root), `google/renameio/v2` for atomic symlinks (confirmed Windows limitation — Linux/macOS only), `fatih/color` v1.18 for TTY-aware output, and `os.UserConfigDir()` for XDG-compliant config path. All libraries are stable, widely used, and have HIGH confidence research coverage.
 
-**Primary recommendation:** Structure the project as `main.go` + `cmd/root.go` + `internal/{fs,config}/`. Keep `internal/fs` focused on atomic symlinks and protected-path checks. Keep `internal/config` focused on path resolution and JSON serialization that matches the Python format exactly.
+**Primary recommendation:** Structure the project as `main.go` + `cmd/root.go` + `internal/{fs,config}/`. Keep `internal/fs` focused on atomic symlinks and protected-path checks. Keep `internal/config` focused on path resolution and JSON serialization that matches the expected format exactly.
 
 ## Standard Stack
 
@@ -209,8 +209,7 @@ func TestAtomicSymlink_ReplaceExisting(t *testing.T) {
 **Example:**
 ```go
 // internal/fs/protected.go
-// Copied verbatim from Python source SHARED_PATHS constant.
-// See ~/Programming/claudehopper/src/claudehopper/cli.py:SHARED_PATHS
+// SHARED_PATHS constant — the protected paths set.
 var sharedPaths = map[string]struct{}{
     ".credentials.json": {},
     "history.jsonl":     {},
@@ -233,10 +232,10 @@ func IsProtected(name string) bool {
 }
 ```
 
-Fixture test — compares Go constant against canonical Python source list:
+Fixture test — compares Go constant against the expected protected paths list:
 ```go
 // internal/fs/protected_test.go
-// testdata/python_shared_paths.txt — one path per line, copied from Python source
+// testdata/python_shared_paths.txt — one path per line, the expected protected paths
 func TestIsProtected_MatchesPythonConstants(t *testing.T) {
     data, err := os.ReadFile("testdata/python_shared_paths.txt")
     // ... parse and verify every line in fixture is protected, and
@@ -351,11 +350,11 @@ fi, err := os.Stat(managedPath) // DO NOT USE for managed symlinks
 **How to avoid:** Use `renameio.Symlink` exclusively. It creates a tmp symlink and renames it atomically. Test with concurrent goroutines reading the path while the swap happens.
 **Warning signs:** Test that removes and re-symlinks manually — any test not using `renameio` package.
 
-### Pitfall 3: SHARED_PATHS Drift from Python
-**What goes wrong:** Python version adds a new protected path (e.g., `session-env`) but Go version doesn't include it, so the Go version modifies a path the Python version considers protected.
+### Pitfall 3: SHARED_PATHS Drift
+**What goes wrong:** The protected paths set gets out of sync between what the fixture file specifies and what the Go constant declares, so the Go version may modify a path that should be protected.
 **Why it happens:** Constants copied manually without a fixture test.
-**How to avoid:** Write `testdata/python_shared_paths.txt` fixture from the Python source at implementation time. Write a test that compares Go's `sharedPaths` map keys against the fixture line by line. The test fails if either side drifts.
-**Warning signs:** Any change to Python SHARED_PATHS not reflected in a test failure.
+**How to avoid:** Write `testdata/python_shared_paths.txt` fixture at implementation time. Write a test that compares Go's `sharedPaths` map keys against the fixture line by line. The test fails if either side drifts.
+**Warning signs:** Any change to SHARED_PATHS not reflected in a test failure.
 
 ### Pitfall 4: Tilde String in Config Path
 **What goes wrong:** Config path stored as `"~/.config/claudehopper"` string; tilde is not expanded by Go's file APIs.
@@ -413,14 +412,14 @@ func Execute() error {
 }
 ```
 
-### config.json Format (Python-compatible)
+### config.json Format
 ```json
 {
   "active": "gsd"
 }
 ```
 
-### .hop-manifest.json Format (Python-compatible)
+### .hop-manifest.json Format
 ```json
 {
   "managed_paths": [
@@ -434,8 +433,8 @@ func Execute() error {
 
 Note: `managed_paths` is a sorted JSON array of strings. `shared_paths` is an object mapping filename to source profile name. `description` is a plain string. No additional fields in Phase 1.
 
-### Python SHARED_PATHS Constants (source of truth)
-The following paths are verified from `/home/matthew/Programming/claudehopper/src/claudehopper/cli.py` line 43-55:
+### SHARED_PATHS Constants
+The following paths make up the protected set:
 ```
 .credentials.json
 history.jsonl
@@ -450,8 +449,7 @@ session-env
 .session-stats.json
 ```
 
-### Python DEFAULT_LINKED Constants (source of truth)
-Verified from Python source lines 36-39:
+### DEFAULT_LINKED Constants
 ```
 settings.json
 settings.local.json
@@ -514,7 +512,7 @@ func Die(msg string) {
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
 | SAFE-01 | `IsProtected()` returns true for all 11 protected paths, false for non-protected | unit | `go test ./internal/fs/ -run TestIsProtected -v` | Wave 0 |
-| SAFE-01 | `IsProtected()` constants match Python SHARED_PATHS fixture exactly | fixture/unit | `go test ./internal/fs/ -run TestIsProtected_MatchesPythonConstants -v` | Wave 0 |
+| SAFE-01 | `IsProtected()` constants match the fixture exactly | fixture/unit | `go test ./internal/fs/ -run TestIsProtected_MatchesPythonConstants -v` | Wave 0 |
 | SAFE-03 | Config JSON round-trips with expected keys (`active`) | unit | `go test ./internal/config/ -run TestConfigJSON -v` | Wave 0 |
 | SAFE-03 | Manifest JSON round-trips with expected keys (`managed_paths`, `shared_paths`, `description`) | unit | `go test ./internal/config/ -run TestManifestJSON -v` | Wave 0 |
 | DIST-02 | `hop` and `claudehopper` both exist and point to same binary after `make install` | smoke (manual) | `make install && hop --help && claudehopper --help` | manual only — requires $GOPATH/bin |
@@ -533,7 +531,7 @@ func Die(msg string) {
 ### Wave 0 Gaps
 - [ ] `internal/fs/atomic_test.go` — covers AtomicSymlink create and replace (SAFE-01, SAFE-03)
 - [ ] `internal/fs/protected_test.go` — covers IsProtected and Python fixture match (SAFE-01)
-- [ ] `internal/fs/testdata/python_shared_paths.txt` — fixture listing Python SHARED_PATHS constants
+- [ ] `internal/fs/testdata/python_shared_paths.txt` — fixture listing the SHARED_PATHS constants
 - [ ] `internal/config/paths_test.go` — covers ConfigDir XDG and default (SAFE-03)
 - [ ] `internal/config/config_test.go` — covers config.json JSON round-trip (SAFE-03)
 - [ ] `internal/config/manifest_test.go` — covers .hop-manifest.json round-trip (SAFE-03)
@@ -549,7 +547,7 @@ func Die(msg string) {
 - https://pkg.go.dev/github.com/spf13/cobra — Version v1.10.2, rootCmd.Version, shell completions API
 - https://pkg.go.dev/os#UserConfigDir — XDG_CONFIG_HOME behavior on Linux, $HOME/.config fallback
 - https://pkg.go.dev/github.com/fatih/color — v1.18.0, NoColor, TTY detection via go-isatty, NO_COLOR support
-- /home/matthew/Programming/claudehopper/src/claudehopper/cli.py — Python source of truth: SHARED_PATHS (lines 43-55), DEFAULT_LINKED (lines 36-39), atomic_symlink pattern (lines 288-300), JSON manifest schema (lines 196-203)
+- SHARED_PATHS and DEFAULT_LINKED constants — protected paths and default-linked files sets
 - ~/.config/claudehopper/config.json — Live config.json format: `{"active": "gsd"}`
 - ~/.config/claudehopper/profiles/gsd/.hop-manifest.json — Live manifest format with managed_paths, shared_paths, description
 
@@ -564,8 +562,8 @@ func Die(msg string) {
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack: HIGH — all libraries verified via pkg.go.dev; Python source read directly
-- Architecture: HIGH — patterns derived from official docs and verified Python source constants
+- Standard stack: HIGH — all libraries verified via pkg.go.dev
+- Architecture: HIGH — patterns derived from official docs and verified constants
 - Pitfalls: HIGH for symlink/version/stat pitfalls (verified against official docs); MEDIUM for drift detection (relies on maintained test fixture)
 - JSON schema: HIGH — read from live files on this machine
 
