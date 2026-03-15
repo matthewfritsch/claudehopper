@@ -81,17 +81,26 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("load manifest: %w", err)
 		}
-		// Collect all captured file names: managed_paths + shared_paths keys
+		// Collect all unique captured file names from managed_paths + shared_paths
+		seen := make(map[string]bool)
 		var capturedFiles []string
-		capturedFiles = append(capturedFiles, m.ManagedPaths...)
+		for _, f := range m.ManagedPaths {
+			if !seen[f] {
+				seen[f] = true
+				capturedFiles = append(capturedFiles, f)
+			}
+		}
 		for k := range m.SharedPaths {
-			capturedFiles = append(capturedFiles, k)
+			if !seen[k] {
+				seen[k] = true
+				capturedFiles = append(capturedFiles, k)
+			}
 		}
 		sort.Strings(capturedFiles)
 		for _, f := range capturedFiles {
 			fmt.Println(f)
 		}
-		total := len(m.ManagedPaths) + len(m.SharedPaths)
+		total := len(capturedFiles)
 		fmt.Printf("Created profile %q from current config (%d files captured)\n", name, total)
 
 	case createFromProfile != "":

@@ -44,18 +44,28 @@ func GetProfileStatus(profileDir, claudeDir, sharedDir string, m config.Manifest
 
 	var paths []PathHealth
 
-	// Check managed_paths
+	// Track which paths we've already processed to avoid duplicates.
+	// Shared paths may appear in both ManagedPaths and SharedPaths.
+	seen := make(map[string]bool)
+
+	// Check managed_paths, annotating shared ones from the SharedPaths map
 	for _, name := range m.ManagedPaths {
+		seen[name] = true
 		linkPath := filepath.Join(claudeDir, name)
 		ph := checkLinkHealth(name, linkPath, profileDir, sharedDir)
+		if source, isShared := m.SharedPaths[name]; isShared && ph.Status == "shared" {
+			ph.Detail = source
+		}
 		paths = append(paths, ph)
 	}
 
-	// Check shared_paths
+	// Check any shared_paths not already in managed_paths
 	for name, sourceProfile := range m.SharedPaths {
+		if seen[name] {
+			continue
+		}
 		linkPath := filepath.Join(claudeDir, name)
 		ph := checkLinkHealth(name, linkPath, profileDir, sharedDir)
-		// For shared paths, override detail with source profile name if shared
 		if ph.Status == "shared" {
 			ph.Detail = sourceProfile
 		}
