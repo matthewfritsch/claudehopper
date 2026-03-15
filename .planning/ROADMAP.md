@@ -78,7 +78,7 @@ Plans:
 **Goal**: The tool is releasable: versioned binaries for all platforms, shell completions verified, and update checking working
 **Depends on**: Phase 3
 **Requirements**: OPS-02, DIST-01, DIST-03
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Update checking package with 24h TTL cache and hop update command
@@ -99,4 +99,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
 | 2. Core Profile Operations | 4/4 | Complete    | 2026-03-15 |
 | 3. Extended Features | 4/4 | Complete    | 2026-03-15 |
-| 4. Polish & Distribution | 0/2 | Not started | - |
+| 4. Polish & Distribution | 1/2 | In Progress|  |

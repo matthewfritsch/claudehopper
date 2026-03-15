@@ -54,9 +54,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Distribution & UX
 
-- [ ] **DIST-01**: Shell tab completions work for bash, zsh, fish, and powershell via Cobra
+- [x] **DIST-01**: Shell tab completions work for bash, zsh, fish, and powershell via Cobra
 - [x] **DIST-02**: Tool installs as both `hop` and `claudehopper` binary names
-- [ ] **DIST-03**: Tool distributable via `go install` and prebuilt binaries (goreleaser)
+- [x] **DIST-03**: Tool distributable via `go install` and prebuilt binaries (goreleaser)
 - [x] **DIST-04**: Every subcommand has `--help` and root has `--version`
 
 ## v2 Requirements
@@ -114,9 +114,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPS-01 | Phase 3 | Complete |
 | OPS-02 | Phase 4 | Pending |
 | OPS-03 | Phase 3 | Complete |
-| DIST-01 | Phase 4 | Pending |
+| DIST-01 | Phase 4 | Complete |
 | DIST-02 | Phase 1 | Complete |
-| DIST-03 | Phase 4 | Pending |
+| DIST-03 | Phase 4 | Complete |
 | DIST-04 | Phase 1 | Complete |
 
 **Coverage:**

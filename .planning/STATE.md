@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-15T01:10:14.202Z"
+stopped_at: Completed 04-polish-distribution-02-PLAN.md
+last_updated: "2026-03-15T01:23:05.871Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
   percent: 0
 ---
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-extended-features P03 | 6min | 2 tasks | 8 files |
 | Phase 03-extended-features P02 | 20min | 2 tasks | 4 files |
 | Phase 03-extended-features P04 | 10min | 2 tasks | 6 files |
+| Phase 04-polish-distribution P02 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase 03-extended-features]: share/pick/unshare cmd commands re-link active profile via DoSwitch(Force:true) after manifest mutation
 - [Phase 03-extended-features]: Lexicographic since-filter: compare entry.Timestamp >= sinceDate+'T00:00:00' matching Python behavior
 - [Phase 03-extended-features]: UnmanageActive is in profile package to access unexported copyFile and copyDirRecursive
+- [Phase 04-polish-distribution]: homebrew_casks (not brews) in goreleaser v2 distributes both hop and claudehopper as cask binaries to matthewfritsch/homebrew-claudehopper tap
+- [Phase 04-polish-distribution]: GitHub Actions release.yml uses goreleaser-action@v7 with fetch-depth:0 and ~> v2 version pin, passing HOMEBREW_TAP_GITHUB_TOKEN secret for cross-repo tap write access
 
 ### Pending Todos
 
@@ -113,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T01:10:14.198Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-polish-distribution/04-CONTEXT.md
+Last session: 2026-03-15T01:23:05.868Z
+Stopped at: Completed 04-polish-distribution-02-PLAN.md
+Resume file: None
