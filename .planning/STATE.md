@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-15T00:31:19.825Z"
+stopped_at: Completed 03-extended-features-01-PLAN.md
+last_updated: "2026-03-15T00:49:58.272Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-core-profile-operations P02 | 5min | 2 tasks | 7 files |
 | Phase 02-core-profile-operations P03 | 3min | 2 tasks | 2 files |
 | Phase 02-core-profile-operations P04 | 3min | 2 tasks | 9 files |
+| Phase 03-extended-features P01 | 3min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Recent decisions affecting current work:
 - [Phase 02-core-profile-operations]: backupPath uses os.Lstat not os.Stat — dangling symlinks occupy the backup slot
 - [Phase 02-core-profile-operations]: isInteractive() uses os.Stdin.Stat() + ModeCharDevice for TTY detection in cmd layer — no external dependency
 - [Phase 02-core-profile-operations]: Adopt prompt is a single bulk y/N for all unmanaged files — not per-file for UX simplicity
+- [Phase 03-extended-features]: RecordUsage is void with no return value — callers never need to handle usage errors
+- [Phase 03-extended-features]: configDir, _ = config.ConfigDir() pattern in cmd layer — usage tracking degrades silently if config dir unresolvable
 
 ### Pending Todos
 
@@ -100,6 +103,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T00:31:19.822Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-extended-features/03-CONTEXT.md
+Last session: 2026-03-15T00:49:58.269Z
+Stopped at: Completed 03-extended-features-01-PLAN.md
+Resume file: None
