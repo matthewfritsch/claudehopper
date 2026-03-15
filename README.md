@@ -1,32 +1,36 @@
 # claudehopper
 
-Manage multiple Claude Code configuration profiles. Switch between different setups — each with its own CLAUDE.md, commands, plugins, and MCP servers — with a single command.
+Switch between Claude Code configuration profiles. Run Oh-my-claudecode one session, vanilla the next, GSD for a sprint — without blowing away your setup each time. Share what you want between profiles, but keep other files separate.
 
 ## The Problem
 
 Claude Code stores everything in `~/.claude/`: your global instructions, slash commands, MCP server config, plugins, and more. When you work across different contexts (work, personal, experimental), you need different configurations — but swapping files manually is tedious and error-prone.
 
-## Install
+## Set Up
+
+### Let Claude do it
+
+Paste this into Claude Code and it will install claudehopper, capture your current setup, and create a clean baseline profile:
+
+```
+Fetch this link, follow it to set up claudehopper for me:
+https://raw.githubusercontent.com/matthewfritsch/claudehopper/main/docs/claude-setup-guide.md
+```
+
+### Do it yourself
 
 **From source (requires Go 1.25+):**
 
 ```bash
 go install github.com/matthewfritsch/claudehopper@latest
+ln -sf "$(go env GOPATH)/bin/claudehopper" "$(go env GOPATH)/bin/hop"
 ```
 
 **From GitHub Releases:**
 
-Download the binary for your platform from [Releases](https://github.com/matthewfritsch/claudehopper/releases), extract, and move to your PATH.
+Download the binary for your platform from [Releases](https://github.com/matthewfritsch/claudehopper/releases), extract, and move both `claudehopper` and `hop` to your PATH.
 
-**Create the `hop` alias** (optional but recommended):
-
-```bash
-# After go install:
-ln -sf "$(go env GOPATH)/bin/claudehopper" "$(go env GOPATH)/bin/hop"
-
-# Or use the Makefile:
-make install
-```
+Both `claudehopper` and `hop` work as the CLI command.
 
 ## Quick Start
 
@@ -152,6 +156,10 @@ The Go version reads and writes the same config and manifest formats as the Pyth
 2. Run `hop list` — your profiles should appear
 3. Run `hop status` — verify link health
 4. Uninstall the Python version when ready: `uv tool uninstall claudehopper`
+
+## For AI Agents
+
+If claudehopper is already installed and you're an AI agent helping the user manage profiles, run `hop status` to see the current state, then use `hop --help` and `hop <command> --help` for full usage. The key commands are `create`, `switch`, `share`, `pick`, and `tree`.
 
 ## Safety
 
