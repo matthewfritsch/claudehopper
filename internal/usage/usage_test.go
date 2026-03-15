@@ -6,13 +6,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/matthewfritsch/claudehopper/internal/usage"
 )
 
 // TestRecordUsage verifies that RecordUsage appends a valid JSON line to usage.jsonl
 // with the expected profile, timestamp, and action fields.
 func TestRecordUsage(t *testing.T) {
 	dir := t.TempDir()
-	RecordUsage(dir, "myprofile", "switch")
+	usage.RecordUsage(dir, "myprofile", "switch")
 
 	data, err := os.ReadFile(filepath.Join(dir, "usage.jsonl"))
 	if err != nil {
@@ -24,7 +26,7 @@ func TestRecordUsage(t *testing.T) {
 		t.Fatalf("expected 1 line, got %d", len(lines))
 	}
 
-	var entry UsageEntry
+	var entry usage.UsageEntry
 	if err := json.Unmarshal([]byte(lines[0]), &entry); err != nil {
 		t.Fatalf("expected valid JSON: %v", err)
 	}
@@ -49,7 +51,7 @@ func TestRecordUsage_CreatesDir(t *testing.T) {
 		t.Fatalf("expected subDir to not exist")
 	}
 
-	RecordUsage(subDir, "testprofile", "create")
+	usage.RecordUsage(subDir, "testprofile", "create")
 
 	if _, err := os.Stat(subDir); err != nil {
 		t.Errorf("expected subDir to be created: %v", err)
@@ -68,15 +70,15 @@ func TestRecordUsage_NoError(t *testing.T) {
 			t.Errorf("RecordUsage panicked: %v", r)
 		}
 	}()
-	RecordUsage("/dev/null/impossible", "profile", "delete")
+	usage.RecordUsage("/dev/null/impossible", "profile", "delete")
 }
 
 // TestRecordUsage_MultipleAppends verifies that recording 3 entries produces 3 lines.
 func TestRecordUsage_MultipleAppends(t *testing.T) {
 	dir := t.TempDir()
-	RecordUsage(dir, "profile1", "switch")
-	RecordUsage(dir, "profile2", "create")
-	RecordUsage(dir, "profile3", "delete")
+	usage.RecordUsage(dir, "profile1", "switch")
+	usage.RecordUsage(dir, "profile2", "create")
+	usage.RecordUsage(dir, "profile3", "delete")
 
 	data, err := os.ReadFile(filepath.Join(dir, "usage.jsonl"))
 	if err != nil {
@@ -91,7 +93,7 @@ func TestRecordUsage_MultipleAppends(t *testing.T) {
 	actions := []string{"switch", "create", "delete"}
 	profiles := []string{"profile1", "profile2", "profile3"}
 	for i, line := range lines {
-		var entry UsageEntry
+		var entry usage.UsageEntry
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
 			t.Errorf("line %d: expected valid JSON: %v", i, err)
 			continue
@@ -109,7 +111,7 @@ func TestRecordUsage_MultipleAppends(t *testing.T) {
 // when usage.jsonl does not exist.
 func TestReadUsage_FileNotExist(t *testing.T) {
 	dir := t.TempDir()
-	entries, err := ReadUsage(dir)
+	entries, err := usage.ReadUsage(dir)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -131,7 +133,7 @@ not valid json at all
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
-	entries, err := ReadUsage(dir)
+	entries, err := usage.ReadUsage(dir)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
