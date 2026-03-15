@@ -43,12 +43,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **VIZ-01**: User can view profile lineage tree (`hop tree`) with optional `--json` output
 - [x] **VIZ-02**: User can compare two profiles side-by-side (`hop diff`)
-- [ ] **VIZ-03**: User can view usage statistics (`hop stats`) with optional `--json` output
+- [x] **VIZ-03**: User can view usage statistics (`hop stats`) with optional `--json` output
 - [x] **VIZ-04**: User can print a profile's directory path for scripting (`hop path <name>`)
 
 ### Operations
 
-- [ ] **OPS-01**: User can stop using claudehopper by materializing all symlinks (`hop unmanage`)
+- [x] **OPS-01**: User can stop using claudehopper by materializing all symlinks (`hop unmanage`)
 - [ ] **OPS-02**: Tool checks for updates from GitHub releases with 24h cached TTL
 - [x] **OPS-03**: All profile actions are logged to `usage.jsonl` for statistics
 
@@ -109,9 +109,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHAR-04 | Phase 2 | Complete |
 | VIZ-01 | Phase 3 | Complete |
 | VIZ-02 | Phase 3 | Complete |
-| VIZ-03 | Phase 3 | Pending |
+| VIZ-03 | Phase 3 | Complete |
 | VIZ-04 | Phase 3 | Complete |
-| OPS-01 | Phase 3 | Pending |
+| OPS-01 | Phase 3 | Complete |
 | OPS-02 | Phase 4 | Pending |
 | OPS-03 | Phase 3 | Complete |
 | DIST-01 | Phase 4 | Pending |

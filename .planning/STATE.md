@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-extended-features-02-PLAN.md
-last_updated: "2026-03-15T00:54:29.385Z"
+stopped_at: Completed 03-extended-features-04-PLAN.md
+last_updated: "2026-03-15T00:59:11.608Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-extended-features P01 | 3min | 2 tasks | 5 files |
 | Phase 03-extended-features P03 | 6min | 2 tasks | 8 files |
 | Phase 03-extended-features P02 | 20min | 2 tasks | 4 files |
+| Phase 03-extended-features P04 | 10min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,8 @@ Recent decisions affecting current work:
 - [Phase 03-extended-features]: ShareFiles uses filepath.EvalSymlinks to prevent chained symlinks
 - [Phase 03-extended-features]: UnshareFiles with empty paths unshares all shared_paths — bulk materialization
 - [Phase 03-extended-features]: share/pick/unshare cmd commands re-link active profile via DoSwitch(Force:true) after manifest mutation
+- [Phase 03-extended-features]: Lexicographic since-filter: compare entry.Timestamp >= sinceDate+'T00:00:00' matching Python behavior
+- [Phase 03-extended-features]: UnmanageActive is in profile package to access unexported copyFile and copyDirRecursive
 
 ### Pending Todos
 
@@ -110,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T00:54:29.382Z
-Stopped at: Completed 03-extended-features-02-PLAN.md
+Last session: 2026-03-15T00:59:11.603Z
+Stopped at: Completed 03-extended-features-04-PLAN.md
 Resume file: None

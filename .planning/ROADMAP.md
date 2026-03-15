@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Go module scaffold, Cobra CLI skeleton, atomic symlink engine, config/path resolution, and protected-paths enforcement (completed 2026-03-14)
 - [x] **Phase 2: Core Profile Operations** - Full profile CRUD, switch with atomic replacement and safety features, manifest format compatibility with Python version (completed 2026-03-15)
-- [ ] **Phase 3: Extended Features** - File sharing, profile visualization, usage tracking, and the unmanage escape hatch
+- [x] **Phase 3: Extended Features** - File sharing, profile visualization, usage tracking, and the unmanage escape hatch (completed 2026-03-15)
 - [ ] **Phase 4: Polish & Distribution** - Update checking, goreleaser dual-binary release, shell completions verification, and version injection
 
 ## Phase Details
@@ -60,7 +60,7 @@ Plans:
 **Goal**: Users have full file-sharing between profiles, rich visualization commands, usage tracking, and a clean exit ramp from the tool
 **Depends on**: Phase 2
 **Requirements**: SHAR-01, SHAR-02, SHAR-03, VIZ-01, VIZ-02, VIZ-03, VIZ-04, OPS-01, OPS-03
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 03-01-PLAN.md — Usage tracking package (RecordUsage/ReadUsage) and retroactive wiring into switch/create/delete
@@ -93,5 +93,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
 | 2. Core Profile Operations | 4/4 | Complete    | 2026-03-15 |
-| 3. Extended Features | 3/4 | In Progress|  |
+| 3. Extended Features | 4/4 | Complete   | 2026-03-15 |
 | 4. Polish & Distribution | 0/TBD | Not started | - |
