@@ -12,9 +12,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PROF-01**: User can create a blank profile with a name and optional description
 - [x] **PROF-02**: User can create a profile from their current `~/.claude/` config (`--from-current`)
 - [x] **PROF-03**: User can clone an existing profile (`--from-profile`) with lineage tracked in manifest
-- [ ] **PROF-04**: User can list all profiles showing name, active marker, and managed path count
-- [ ] **PROF-05**: User can view status of active profile with link health per managed path
-- [ ] **PROF-06**: User can delete a profile with warning if other profiles depend on it
+- [x] **PROF-04**: User can list all profiles showing name, active marker, and managed path count
+- [x] **PROF-05**: User can view status of active profile with link health per managed path
+- [x] **PROF-06**: User can delete a profile with warning if other profiles depend on it
 - [x] **PROF-07**: User can create and immediately activate a profile (`--activate`)
 
 ### Profile Switching
@@ -90,9 +90,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROF-01 | Phase 2 | Complete |
 | PROF-02 | Phase 2 | Complete |
 | PROF-03 | Phase 2 | Complete |
-| PROF-04 | Phase 2 | Pending |
-| PROF-05 | Phase 2 | Pending |
-| PROF-06 | Phase 2 | Pending |
+| PROF-04 | Phase 2 | Complete |
+| PROF-05 | Phase 2 | Complete |
+| PROF-06 | Phase 2 | Complete |
 | PROF-07 | Phase 2 | Complete |
 | SWCH-01 | Phase 2 | Pending |
 | SWCH-02 | Phase 2 | Pending |

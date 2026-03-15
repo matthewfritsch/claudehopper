@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-core-profile-operations 02-01-PLAN.md
-last_updated: "2026-03-15T00:05:12.561Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-15T00:06:04.871Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-foundation P02 | 5min | 2 tasks | 7 files |
 | Phase 01-foundation P03 | 7 | 2 tasks | 8 files |
 | Phase 02-core-profile-operations P01 | 35min | 2 tasks | 10 files |
+| Phase 02-core-profile-operations P02 | 5min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 02-core-profile-operations]: CreatedFrom placed first in Manifest struct for Python field-order parity
 - [Phase 02-core-profile-operations]: Explicit dir params pattern: create functions accept dir paths directly, never call config.ProfilesDir internally — enables t.TempDir() test isolation
 - [Phase 02-core-profile-operations]: CreateFromCurrent records existing symlinks in shared_paths not managed_paths — symlinks are shared data, not owned by the profile
+- [Phase 02-core-profile-operations]: DependentError returned by DeleteProfile lets CLI layer decide whether to prompt or force-delete
+- [Phase 02-core-profile-operations]: GetProfileStatus uses os.Lstat + os.Readlink + strings.HasPrefix for link target classification (linked/shared/broken)
+- [Phase 02-core-profile-operations]: FindDependents checks both shared_paths values AND created_from field for complete dependency scanning
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T00:05:12.558Z
-Stopped at: Completed 02-core-profile-operations 02-01-PLAN.md
+Last session: 2026-03-15T00:06:04.868Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
