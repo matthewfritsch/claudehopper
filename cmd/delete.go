@@ -9,6 +9,7 @@ import (
 
 	"github.com/matthewfritsch/claudehopper/internal/config"
 	"github.com/matthewfritsch/claudehopper/internal/profile"
+	"github.com/matthewfritsch/claudehopper/internal/usage"
 	"github.com/spf13/cobra"
 )
 
@@ -50,6 +51,8 @@ func runDelete(_ *cobra.Command, args []string) error {
 
 	err = profile.DeleteProfile(profilesDir, name, cfg.Active)
 	if err == nil {
+		cfgDir, _ := config.ConfigDir()
+		usage.RecordUsage(cfgDir, name, "delete")
 		fmt.Printf("Deleted profile %q\n", name)
 		return nil
 	}
@@ -95,6 +98,8 @@ func forceDelete(profilesDir, name string) error {
 	if err := os.RemoveAll(profilePath); err != nil {
 		return fmt.Errorf("remove profile %q: %w", name, err)
 	}
+	cfgDir, _ := config.ConfigDir()
+	usage.RecordUsage(cfgDir, name, "delete")
 	fmt.Printf("Deleted profile %q\n", name)
 	return nil
 }

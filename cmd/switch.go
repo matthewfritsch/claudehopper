@@ -9,6 +9,7 @@ import (
 
 	"github.com/matthewfritsch/claudehopper/internal/config"
 	"github.com/matthewfritsch/claudehopper/internal/profile"
+	"github.com/matthewfritsch/claudehopper/internal/usage"
 	"github.com/spf13/cobra"
 )
 
@@ -96,6 +97,11 @@ func runSwitch(_ *cobra.Command, args []string) error {
 	result, err := profile.DoSwitch(profilesDir, cDir, configPath, sharedDir, name, currentName, opts)
 	if err != nil {
 		return err
+	}
+
+	if !switchDryRun {
+		cfgDir, _ := config.ConfigDir()
+		usage.RecordUsage(cfgDir, name, "switch")
 	}
 
 	if switchDryRun {

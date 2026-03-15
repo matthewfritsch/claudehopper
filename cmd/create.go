@@ -7,6 +7,7 @@ import (
 
 	"github.com/matthewfritsch/claudehopper/internal/config"
 	"github.com/matthewfritsch/claudehopper/internal/profile"
+	"github.com/matthewfritsch/claudehopper/internal/usage"
 	"github.com/spf13/cobra"
 )
 
@@ -106,6 +107,9 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Printf("Created profile %q\n", name)
 	}
+
+	cfgDir, _ := config.ConfigDir()
+	usage.RecordUsage(cfgDir, name, "create")
 
 	if createActivate {
 		configPath, err := config.ConfigFilePath()
