@@ -2,8 +2,7 @@ package profile
 
 import (
 	"fmt"
-	"io"
-	"os"
+"os"
 	"path/filepath"
 	"strings"
 
@@ -255,25 +254,4 @@ func copyDirRecursive(srcDir, dstDir string) error {
 		return err
 	}
 	return copyDirContents(srcDir, dstDir)
-}
-
-// copyFileWithPerm is an alias kept for clarity — same as copyFile.
-func copyFileWithPerm(src, dst string) error {
-	return copyFile(src, dst)
-}
-
-// copyFileIO copies src to dst using io.Copy (fallback if copyFile not used).
-func copyFileIO(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, in)
-	return err
 }
