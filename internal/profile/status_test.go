@@ -3,6 +3,7 @@ package profile_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/matthewfritsch/claudehopper/internal/config"
@@ -196,7 +197,7 @@ func TestGetProfileStatus_Shared(t *testing.T) {
 	}
 }
 
-func TestFormatProfileStatus(t *testing.T) {
+func TestFormatProfileStatus_Verbose(t *testing.T) {
 	info := profile.ProfileStatusInfo{
 		Name:        "work",
 		Description: "work profile",
@@ -207,8 +208,65 @@ func TestFormatProfileStatus(t *testing.T) {
 			{Name: "snippets", Status: "conflict", Detail: ""},
 		},
 	}
-	result := profile.FormatProfileStatus(info)
+	result := profile.FormatProfileStatus(info, true)
 	if result == "" {
-		t.Error("FormatProfileStatus returned empty string")
+		t.Fatal("FormatProfileStatus returned empty string")
+	}
+	// Verbose mode should list every path
+	for _, name := range []string{"settings.json", "themes", "keybindings.json", "snippets"} {
+		if !strings.Contains(result, name) {
+			t.Errorf("verbose output missing path %q", name)
+		}
+	}
+}
+
+func TestFormatProfileStatus_Compact_AllHealthy(t *testing.T) {
+	info := profile.ProfileStatusInfo{
+		Name: "work",
+		Paths: []profile.PathHealth{
+			{Name: "CLAUDE.md", Status: "linked"},
+			{Name: "commands", Status: "linked"},
+			{Name: "settings.json", Status: "shared", Detail: "(shared)"},
+		},
+	}
+	result := profile.FormatProfileStatus(info, false)
+	// Should show summary, not individual paths
+	if !strings.Contains(result, "3 paths linked") {
+		t.Errorf("expected summary line, got:\n%s", result)
+	}
+	if !strings.Contains(result, "1 shared") {
+		t.Errorf("expected shared count, got:\n%s", result)
+	}
+	// Individual path names should NOT appear
+	if strings.Contains(result, "CLAUDE.md") {
+		t.Errorf("compact healthy output should not list individual paths, got:\n%s", result)
+	}
+}
+
+func TestFormatProfileStatus_Compact_WithUnhealthy(t *testing.T) {
+	info := profile.ProfileStatusInfo{
+		Name: "work",
+		Paths: []profile.PathHealth{
+			{Name: "CLAUDE.md", Status: "linked"},
+			{Name: "settings.json", Status: "shared", Detail: "(shared)"},
+			{Name: "keybindings.json", Status: "not-linked"},
+			{Name: "snippets", Status: "conflict"},
+		},
+	}
+	result := profile.FormatProfileStatus(info, false)
+	// Should show healthy count summary
+	if !strings.Contains(result, "2/4 paths healthy") {
+		t.Errorf("expected healthy/total summary, got:\n%s", result)
+	}
+	// Unhealthy paths should be listed
+	if !strings.Contains(result, "keybindings.json") {
+		t.Errorf("expected unhealthy path listed, got:\n%s", result)
+	}
+	if !strings.Contains(result, "snippets") {
+		t.Errorf("expected unhealthy path listed, got:\n%s", result)
+	}
+	// Healthy paths should NOT be listed
+	if strings.Contains(result, "CLAUDE.md") {
+		t.Errorf("healthy paths should not be listed in compact mode, got:\n%s", result)
 	}
 }

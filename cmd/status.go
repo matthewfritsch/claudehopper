@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var statusVerbose bool
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show the active profile's link health",
@@ -22,6 +24,7 @@ var statusCmd = &cobra.Command{
 }
 
 func init() {
+	statusCmd.Flags().BoolVarP(&statusVerbose, "verbose", "V", false, "list every managed path individually")
 	rootCmd.AddCommand(statusCmd)
 }
 
@@ -59,7 +62,7 @@ func runStatus(_ *cobra.Command, _ []string) error {
 	}
 
 	info := profile.GetProfileStatus(profileDir, claudeDir(), sharedDir, m)
-	fmt.Print(profile.FormatProfileStatus(info))
+	fmt.Print(profile.FormatProfileStatus(info, statusVerbose))
 
 	// Non-blocking update check: run in a goroutine with a 3s timeout so
 	// a slow or unreachable GitHub never delays the status output.
