@@ -16,10 +16,15 @@ its own API keys, MCP servers, and settings.
 Use 'hop' as a convenient alias for 'claudehopper'.`,
 }
 
+// Version holds the bare version string (e.g. "1.2.3") set by SetVersionInfo.
+// It is accessed by cmd/update.go and cmd/status.go.
+var Version string
+
 // SetVersionInfo sets the version string on the root command using the provided
 // version, commit hash, and build date. This is called from main() with values
 // injected via ldflags at build time.
 func SetVersionInfo(version, commit, date string) {
+	Version = version
 	rootCmd.Version = fmt.Sprintf("%s (commit %s, built %s)", version, commit, date)
 }
 

@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/matthewfritsch/claudehopper/internal/config"
 	"github.com/matthewfritsch/claudehopper/internal/profile"
+	"github.com/matthewfritsch/claudehopper/internal/updater"
 	"github.com/spf13/cobra"
 )
 
@@ -56,5 +60,23 @@ func runStatus(_ *cobra.Command, _ []string) error {
 
 	info := profile.GetProfileStatus(profileDir, claudeDir(), sharedDir, m)
 	fmt.Print(profile.FormatProfileStatus(info))
+
+	// Non-blocking update check: run in a goroutine with a 3s timeout so
+	// a slow or unreachable GitHub never delays the status output.
+	configDir, _ := config.ConfigDir()
+	ch := make(chan *updater.UpdateInfo, 1)
+	go func() {
+		res, _ := updater.CheckForUpdate(context.Background(), configDir, Version)
+		ch <- res
+	}()
+	select {
+	case res := <-ch:
+		if res != nil {
+			fmt.Fprintf(os.Stderr, "\nUpdate available: %s -> run 'hop update' to install\n", res.Version)
+		}
+	case <-time.After(3 * time.Second):
+		// GitHub unreachable or slow — silently skip update notice.
+	}
+
 	return nil
 }
