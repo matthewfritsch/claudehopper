@@ -12,6 +12,7 @@ import (
 //   - shared_paths is an object mapping filename to source profile name
 //   - description is a plain string
 type Manifest struct {
+	CreatedFrom  string            `json:"created_from,omitempty"`
 	ManagedPaths []string          `json:"managed_paths"`
 	SharedPaths  map[string]string `json:"shared_paths"`
 	Description  string            `json:"description"`
@@ -60,6 +61,7 @@ func LoadManifest(path string) (Manifest, error) {
 func SaveManifest(path string, m Manifest) error {
 	// Work on a copy to avoid mutating the caller's slice.
 	out := Manifest{
+		CreatedFrom: m.CreatedFrom,
 		Description: m.Description,
 	}
 

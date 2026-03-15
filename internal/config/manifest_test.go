@@ -172,6 +172,66 @@ func TestLoadManifest_FixtureRoundTrip(t *testing.T) {
 	}
 }
 
+func TestLoadManifest_CreatedFrom_Populated(t *testing.T) {
+	fixture := filepath.Join("testdata", "hop-manifest-with-lineage.json")
+	m, err := LoadManifest(fixture)
+	if err != nil {
+		t.Fatalf("LoadManifest() error: %v", err)
+	}
+	if m.CreatedFrom != "default" {
+		t.Errorf("CreatedFrom = %q, want %q", m.CreatedFrom, "default")
+	}
+	if m.Description != "cloned profile" {
+		t.Errorf("Description = %q, want %q", m.Description, "cloned profile")
+	}
+}
+
+func TestSaveManifest_CreatedFrom_RoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+
+	m := Manifest{
+		ManagedPaths: []string{"settings.json"},
+		SharedPaths:  map[string]string{},
+		Description:  "cloned profile",
+		CreatedFrom:  "default",
+	}
+	if err := SaveManifest(path, m); err != nil {
+		t.Fatalf("SaveManifest() error: %v", err)
+	}
+
+	loaded, err := LoadManifest(path)
+	if err != nil {
+		t.Fatalf("LoadManifest() error: %v", err)
+	}
+	if loaded.CreatedFrom != "default" {
+		t.Errorf("CreatedFrom after round-trip = %q, want %q", loaded.CreatedFrom, "default")
+	}
+}
+
+func TestSaveManifest_EmptyCreatedFrom_OmittedFromJSON(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+
+	m := Manifest{
+		ManagedPaths: []string{"settings.json"},
+		SharedPaths:  map[string]string{},
+		Description:  "test",
+		CreatedFrom:  "",
+	}
+	if err := SaveManifest(path, m); err != nil {
+		t.Fatalf("SaveManifest() error: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte("created_from")) {
+		t.Errorf("created_from should be omitted when empty, got:\n%s", string(data))
+	}
+}
+
 func TestNewManifest_NonNilCollections(t *testing.T) {
 	m := NewManifest("test description")
 	if m.ManagedPaths == nil {

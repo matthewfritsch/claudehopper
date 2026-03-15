@@ -1,0 +1,8 @@
+{
+  "created_from": "default",
+  "description": "cloned profile",
+  "managed_paths": [
+    "settings.json"
+  ],
+  "shared_paths": {}
+}
