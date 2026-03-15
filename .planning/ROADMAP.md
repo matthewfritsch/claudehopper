@@ -41,7 +41,7 @@ Plans:
 **Goal**: An existing Python claudehopper user can migrate and perform all daily profile management tasks with the Go binary
 **Depends on**: Phase 1
 **Requirements**: PROF-01, PROF-02, PROF-03, PROF-04, PROF-05, PROF-06, PROF-07, SWCH-01, SWCH-02, SWCH-03, SWCH-04, SWCH-05, SWCH-06, SAFE-02, SHAR-04
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 02-01-PLAN.md — Manifest CreatedFrom fix, profile name validation, and create logic (blank/from-current/from-profile) with shared defaults
@@ -85,6 +85,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
-| 2. Core Profile Operations | 2/4 | In Progress|  |
+| 2. Core Profile Operations | 3/4 | In Progress|  |
 | 3. Extended Features | 0/TBD | Not started | - |
 | 4. Polish & Distribution | 0/TBD | Not started | - |

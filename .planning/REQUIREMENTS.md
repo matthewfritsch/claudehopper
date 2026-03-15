@@ -19,12 +19,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Profile Switching
 
-- [ ] **SWCH-01**: User can switch active profile via single command
-- [ ] **SWCH-02**: Switch uses atomic symlink replacement (tmp + rename, never remove + symlink)
-- [ ] **SWCH-03**: User can preview switch with `--dry-run` before applying
-- [ ] **SWCH-04**: Conflicting files are backed up with `.hop-backup` suffix before overwriting
-- [ ] **SWCH-05**: Manifest is validated before switch (managed paths exist in profile dir)
-- [ ] **SWCH-06**: Unmanaged files in `~/.claude/` are detected and offered for adoption on switch
+- [x] **SWCH-01**: User can switch active profile via single command
+- [x] **SWCH-02**: Switch uses atomic symlink replacement (tmp + rename, never remove + symlink)
+- [x] **SWCH-03**: User can preview switch with `--dry-run` before applying
+- [x] **SWCH-04**: Conflicting files are backed up with `.hop-backup` suffix before overwriting
+- [x] **SWCH-05**: Manifest is validated before switch (managed paths exist in profile dir)
+- [x] **SWCH-06**: Unmanaged files in `~/.claude/` are detected and offered for adoption on switch
 
 ### Safety & Compatibility
 
@@ -94,12 +94,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROF-05 | Phase 2 | Complete |
 | PROF-06 | Phase 2 | Complete |
 | PROF-07 | Phase 2 | Complete |
-| SWCH-01 | Phase 2 | Pending |
-| SWCH-02 | Phase 2 | Pending |
-| SWCH-03 | Phase 2 | Pending |
-| SWCH-04 | Phase 2 | Pending |
-| SWCH-05 | Phase 2 | Pending |
-| SWCH-06 | Phase 2 | Pending |
+| SWCH-01 | Phase 2 | Complete |
+| SWCH-02 | Phase 2 | Complete |
+| SWCH-03 | Phase 2 | Complete |
+| SWCH-04 | Phase 2 | Complete |
+| SWCH-05 | Phase 2 | Complete |
+| SWCH-06 | Phase 2 | Complete |
 | SAFE-01 | Phase 1 | Complete |
 | SAFE-02 | Phase 2 | Complete |
 | SAFE-03 | Phase 1 | Complete |
