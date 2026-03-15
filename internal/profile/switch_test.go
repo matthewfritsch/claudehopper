@@ -343,3 +343,259 @@ func TestDetectUnmanaged_ReturnsSorted(t *testing.T) {
 		t.Errorf("DetectUnmanaged result not sorted: %v", unmanaged)
 	}
 }
+
+// ---- helpers for DoSwitch tests ----
+
+// makeProfile creates a profile directory with the given managed files and a .hop-manifest.json.
+func makeProfile(t *testing.T, profilesDir, name string, managed []string) string {
+	t.Helper()
+	dir := filepath.Join(profilesDir, name)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range managed {
+		if err := os.WriteFile(filepath.Join(dir, f), []byte("content:"+f), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	testWriteManifest(t, dir, managed, nil, "test profile "+name)
+	return dir
+}
+
+// readConfig loads config.json from configPath.
+func readConfig(t *testing.T, configPath string) config.Config {
+	t.Helper()
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	return cfg
+}
+
+// ---- DoSwitch ----
+
+func TestDoSwitch_DryRun_NoFilesystemChanges(t *testing.T) {
+	profilesDir := t.TempDir()
+	claudeDir := t.TempDir()
+	sharedDir := t.TempDir()
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	makeProfile(t, profilesDir, "alpha", []string{"settings.json"})
+	makeProfile(t, profilesDir, "beta", []string{"settings.json", "keybindings.json"})
+
+	// Capture claudeDir state before
+	before, _ := os.ReadDir(claudeDir)
+
+	result, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "beta", "alpha", SwitchOptions{DryRun: true})
+	if err != nil {
+		t.Fatalf("DoSwitch dry-run: %v", err)
+	}
+	if len(result.Actions) == 0 {
+		t.Error("dry-run should return planned actions")
+	}
+
+	// claudeDir should be unchanged
+	after, _ := os.ReadDir(claudeDir)
+	if len(before) != len(after) {
+		t.Errorf("dry-run modified claudeDir: before %d entries, after %d entries", len(before), len(after))
+	}
+
+	// config should not have been written
+	if _, err := os.Stat(configPath); err == nil {
+		t.Error("dry-run should not write config.json")
+	}
+}
+
+func TestDoSwitch_AlreadyActive_ErrorWithoutForce(t *testing.T) {
+	profilesDir := t.TempDir()
+	claudeDir := t.TempDir()
+	sharedDir := t.TempDir()
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	makeProfile(t, profilesDir, "alpha", []string{"settings.json"})
+
+	_, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "alpha", "alpha", SwitchOptions{})
+	if err == nil {
+		t.Fatal("expected error for same-profile switch, got nil")
+	}
+}
+
+func TestDoSwitch_AlreadyActive_ForceRelinks(t *testing.T) {
+	profilesDir := t.TempDir()
+	claudeDir := t.TempDir()
+	sharedDir := t.TempDir()
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	makeProfile(t, profilesDir, "alpha", []string{"settings.json"})
+
+	result, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "alpha", "alpha", SwitchOptions{Force: true})
+	if err != nil {
+		t.Fatalf("DoSwitch --force: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	// symlink should exist
+	fi, err := os.Lstat(filepath.Join(claudeDir, "settings.json"))
+	if err != nil {
+		t.Fatalf("Lstat after force switch: %v", err)
+	}
+	if fi.Mode()&os.ModeSymlink == 0 {
+		t.Error("expected symlink, got regular file")
+	}
+}
+
+func TestDoSwitch_UnlinksOldLinksNewPaths(t *testing.T) {
+	profilesDir := t.TempDir()
+	claudeDir := t.TempDir()
+	sharedDir := t.TempDir()
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	// alpha has keybindings.json, beta has settings.json
+	makeProfile(t, profilesDir, "alpha", []string{"keybindings.json"})
+	makeProfile(t, profilesDir, "beta", []string{"settings.json"})
+
+	// First switch to alpha to set up initial links
+	if _, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "alpha", "", SwitchOptions{}); err != nil {
+		t.Fatalf("initial switch to alpha: %v", err)
+	}
+
+	// Now switch to beta
+	if _, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "beta", "alpha", SwitchOptions{}); err != nil {
+		t.Fatalf("switch to beta: %v", err)
+	}
+
+	// alpha's keybindings.json symlink should be gone
+	if _, err := os.Lstat(filepath.Join(claudeDir, "keybindings.json")); err == nil {
+		t.Error("keybindings.json should have been unlinked after switching away from alpha")
+	}
+
+	// beta's settings.json symlink should exist
+	fi, err := os.Lstat(filepath.Join(claudeDir, "settings.json"))
+	if err != nil {
+		t.Fatalf("settings.json not found after switch to beta: %v", err)
+	}
+	if fi.Mode()&os.ModeSymlink == 0 {
+		t.Error("settings.json should be a symlink")
+	}
+}
+
+func TestDoSwitch_SavesConfig(t *testing.T) {
+	profilesDir := t.TempDir()
+	claudeDir := t.TempDir()
+	sharedDir := t.TempDir()
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	makeProfile(t, profilesDir, "alpha", []string{"settings.json"})
+	makeProfile(t, profilesDir, "beta", []string{"settings.json"})
+
+	if _, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "beta", "alpha", SwitchOptions{}); err != nil {
+		t.Fatalf("DoSwitch: %v", err)
+	}
+
+	cfg := readConfig(t, configPath)
+	if cfg.Active != "beta" {
+		t.Errorf("config.Active: got %q, want %q", cfg.Active, "beta")
+	}
+}
+
+func TestDoSwitch_BacksUpConflictingFiles(t *testing.T) {
+	profilesDir := t.TempDir()
+	claudeDir := t.TempDir()
+	sharedDir := t.TempDir()
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	makeProfile(t, profilesDir, "beta", []string{"settings.json"})
+
+	// Place a real file at the conflict location
+	conflictPath := filepath.Join(claudeDir, "settings.json")
+	if err := os.WriteFile(conflictPath, []byte("old real file"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "beta", "", SwitchOptions{})
+	if err != nil {
+		t.Fatalf("DoSwitch: %v", err)
+	}
+
+	if len(result.BackedUp) == 0 {
+		t.Error("expected BackedUp to list conflict, got empty")
+	}
+
+	// Backup should exist
+	if _, err := os.Stat(conflictPath + ".hop-backup"); os.IsNotExist(err) {
+		t.Error("expected .hop-backup to exist")
+	}
+}
+
+func TestDoSwitch_ReturnsSwitchResult(t *testing.T) {
+	profilesDir := t.TempDir()
+	claudeDir := t.TempDir()
+	sharedDir := t.TempDir()
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	makeProfile(t, profilesDir, "beta", []string{"settings.json", "keybindings.json"})
+
+	result, err := DoSwitch(profilesDir, claudeDir, configPath, sharedDir, "beta", "", SwitchOptions{})
+	if err != nil {
+		t.Fatalf("DoSwitch: %v", err)
+	}
+	if result == nil {
+		t.Fatal("nil result")
+	}
+	if len(result.Actions) == 0 {
+		t.Error("expected Actions in result")
+	}
+}
+
+// ---- AdoptUnmanaged ----
+
+func TestAdoptUnmanaged_MovesFilesAndUpdatesManifest(t *testing.T) {
+	profileDir := t.TempDir()
+	claudeDir := t.TempDir()
+
+	// Create files in claudeDir to be adopted
+	for _, name := range []string{"myext.json", "custom.md"} {
+		if err := os.WriteFile(filepath.Join(claudeDir, name), []byte("content"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Write initial manifest
+	testWriteManifest(t, profileDir, []string{"settings.json"}, nil, "test")
+	manifest, err := config.LoadManifest(filepath.Join(profileDir, ".hop-manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := AdoptUnmanaged(claudeDir, profileDir, &manifest, []string{"myext.json", "custom.md"}); err != nil {
+		t.Fatalf("AdoptUnmanaged: %v", err)
+	}
+
+	// Files should be in profileDir
+	for _, name := range []string{"myext.json", "custom.md"} {
+		if _, err := os.Stat(filepath.Join(profileDir, name)); err != nil {
+			t.Errorf("expected %s in profileDir, got: %v", name, err)
+		}
+		// Should no longer be in claudeDir
+		if _, err := os.Stat(filepath.Join(claudeDir, name)); err == nil {
+			t.Errorf("expected %s to be gone from claudeDir", name)
+		}
+	}
+
+	// Manifest should include adopted files
+	updatedManifest, err := config.LoadManifest(filepath.Join(profileDir, ".hop-manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	managedSet := make(map[string]struct{})
+	for _, p := range updatedManifest.ManagedPaths {
+		managedSet[p] = struct{}{}
+	}
+	for _, name := range []string{"myext.json", "custom.md"} {
+		if _, ok := managedSet[name]; !ok {
+			t.Errorf("expected %s in manifest managed_paths after adopt", name)
+		}
+	}
+}
