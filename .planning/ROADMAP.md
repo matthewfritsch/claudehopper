@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Go module scaffold, Cobra CLI skeleton, atomic symlink engine, config/path resolution, and protected-paths enforcement (completed 2026-03-14)
 - [x] **Phase 2: Core Profile Operations** - Full profile CRUD, switch with atomic replacement and safety features, manifest format compatibility with Python version (completed 2026-03-15)
 - [x] **Phase 3: Extended Features** - File sharing, profile visualization, usage tracking, and the unmanage escape hatch (completed 2026-03-15)
-- [ ] **Phase 4: Polish & Distribution** - Update checking, goreleaser dual-binary release, shell completions verification, and version injection
+- [x] **Phase 4: Polish & Distribution** - Update checking, goreleaser dual-binary release, shell completions verification, and version injection (completed 2026-03-15)
 
 ## Phase Details
 
@@ -78,7 +78,7 @@ Plans:
 **Goal**: The tool is releasable: versioned binaries for all platforms, shell completions verified, and update checking working
 **Depends on**: Phase 3
 **Requirements**: OPS-02, DIST-01, DIST-03
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 04-01-PLAN.md — Update checking package with 24h TTL cache and hop update command
@@ -99,4 +99,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
 | 2. Core Profile Operations | 4/4 | Complete    | 2026-03-15 |
 | 3. Extended Features | 4/4 | Complete    | 2026-03-15 |
-| 4. Polish & Distribution | 1/2 | In Progress|  |
+| 4. Polish & Distribution | 2/2 | Complete   | 2026-03-15 |

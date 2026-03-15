@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-polish-distribution-02-PLAN.md
-last_updated: "2026-03-15T01:23:05.871Z"
+stopped_at: Completed 04-polish-distribution-01-PLAN.md
+last_updated: "2026-03-15T01:26:05.417Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-extended-features P02 | 20min | 2 tasks | 4 files |
 | Phase 03-extended-features P04 | 10min | 2 tasks | 6 files |
 | Phase 04-polish-distribution P02 | 5min | 2 tasks | 2 files |
+| Phase 04-polish-distribution P01 | 4min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,9 @@ Recent decisions affecting current work:
 - [Phase 03-extended-features]: UnmanageActive is in profile package to access unexported copyFile and copyDirRecursive
 - [Phase 04-polish-distribution]: homebrew_casks (not brews) in goreleaser v2 distributes both hop and claudehopper as cask binaries to matthewfritsch/homebrew-claudehopper tap
 - [Phase 04-polish-distribution]: GitHub Actions release.yml uses goreleaser-action@v7 with fetch-depth:0 and ~> v2 version pin, passing HOMEBREW_TAP_GITHUB_TOKEN secret for cross-repo tap write access
+- [Phase 04-polish-distribution]: detectFunc seam for test isolation: package-level var replaces real GitHub call in updater tests
+- [Phase 04-polish-distribution]: Silent degradation on network errors in CheckForUpdate: return nil,nil so status never fails due to GitHub outage
+- [Phase 04-polish-distribution]: var Version string in cmd package set by SetVersionInfo: avoids re-parsing formatted rootCmd.Version
 
 ### Pending Todos
 
@@ -116,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T01:23:05.868Z
-Stopped at: Completed 04-polish-distribution-02-PLAN.md
+Last session: 2026-03-15T01:26:05.414Z
+Stopped at: Completed 04-polish-distribution-01-PLAN.md
 Resume file: None

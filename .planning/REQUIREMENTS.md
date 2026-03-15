@@ -49,7 +49,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Operations
 
 - [x] **OPS-01**: User can stop using claudehopper by materializing all symlinks (`hop unmanage`)
-- [ ] **OPS-02**: Tool checks for updates from GitHub releases with 24h cached TTL
+- [x] **OPS-02**: Tool checks for updates from GitHub releases with 24h cached TTL
 - [x] **OPS-03**: All profile actions are logged to `usage.jsonl` for statistics
 
 ### Distribution & UX
@@ -112,7 +112,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIZ-03 | Phase 3 | Complete |
 | VIZ-04 | Phase 3 | Complete |
 | OPS-01 | Phase 3 | Complete |
-| OPS-02 | Phase 4 | Pending |
+| OPS-02 | Phase 4 | Complete |
 | OPS-03 | Phase 3 | Complete |
 | DIST-01 | Phase 4 | Complete |
 | DIST-02 | Phase 1 | Complete |
