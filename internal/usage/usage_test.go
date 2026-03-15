@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/matthewfritsch/claudehopper/internal/usage"
 )
@@ -145,5 +146,180 @@ not valid json at all
 	}
 	if entries[1].Profile != "p2" {
 		t.Errorf("expected second profile %q, got %q", "p2", entries[1].Profile)
+	}
+}
+
+// writeTestEntries writes entries to usage.jsonl in dir.
+func writeTestEntries(t *testing.T, dir string, entries []usage.UsageEntry) {
+	t.Helper()
+	var lines []string
+	for _, e := range entries {
+		b, err := json.Marshal(e)
+		if err != nil {
+			t.Fatalf("marshal entry: %v", err)
+		}
+		lines = append(lines, string(b))
+	}
+	content := strings.Join(lines, "\n") + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(content), 0644); err != nil {
+		t.Fatalf("write usage.jsonl: %v", err)
+	}
+}
+
+// TestAggregateStats_CountsSwitches verifies per-profile switch counts.
+func TestAggregateStats_CountsSwitches(t *testing.T) {
+	dir := t.TempDir()
+	entries := []usage.UsageEntry{
+		{Profile: "A", Timestamp: "2026-01-01T10:00:00Z", Action: "switch"},
+		{Profile: "A", Timestamp: "2026-01-02T10:00:00Z", Action: "switch"},
+		{Profile: "A", Timestamp: "2026-01-03T10:00:00Z", Action: "switch"},
+		{Profile: "B", Timestamp: "2026-01-04T10:00:00Z", Action: "switch"},
+		{Profile: "B", Timestamp: "2026-01-05T10:00:00Z", Action: "switch"},
+	}
+	writeTestEntries(t, dir, entries)
+
+	result, err := usage.AggregateStats(dir, "", "")
+	if err != nil {
+		t.Fatalf("AggregateStats: %v", err)
+	}
+	if result.TotalSwitches != 5 {
+		t.Errorf("TotalSwitches = %d, want 5", result.TotalSwitches)
+	}
+	if len(result.Profiles) != 2 {
+		t.Fatalf("len(Profiles) = %d, want 2", len(result.Profiles))
+	}
+	// Sorted by count descending: A (3), B (2)
+	if result.Profiles[0].Name != "A" || result.Profiles[0].Switches != 3 {
+		t.Errorf("Profiles[0] = {%s, %d}, want {A, 3}", result.Profiles[0].Name, result.Profiles[0].Switches)
+	}
+	if result.Profiles[1].Name != "B" || result.Profiles[1].Switches != 2 {
+		t.Errorf("Profiles[1] = {%s, %d}, want {B, 2}", result.Profiles[1].Name, result.Profiles[1].Switches)
+	}
+}
+
+// TestAggregateStats_SinceFilter verifies that --since excludes entries before the date.
+func TestAggregateStats_SinceFilter(t *testing.T) {
+	dir := t.TempDir()
+	entries := []usage.UsageEntry{
+		{Profile: "A", Timestamp: "2026-01-01T10:00:00Z", Action: "switch"},
+		{Profile: "A", Timestamp: "2026-01-15T10:00:00Z", Action: "switch"},
+		{Profile: "A", Timestamp: "2026-02-01T10:00:00Z", Action: "switch"},
+	}
+	writeTestEntries(t, dir, entries)
+
+	result, err := usage.AggregateStats(dir, "2026-01-10", "")
+	if err != nil {
+		t.Fatalf("AggregateStats: %v", err)
+	}
+	// Only entries on or after 2026-01-10 should be counted: 2 entries
+	if result.TotalSwitches != 2 {
+		t.Errorf("TotalSwitches = %d, want 2", result.TotalSwitches)
+	}
+}
+
+// TestAggregateStats_ProfileFilter verifies --profile filters to a single profile.
+func TestAggregateStats_ProfileFilter(t *testing.T) {
+	dir := t.TempDir()
+	entries := []usage.UsageEntry{
+		{Profile: "A", Timestamp: "2026-01-01T10:00:00Z", Action: "switch"},
+		{Profile: "A", Timestamp: "2026-01-02T10:00:00Z", Action: "switch"},
+		{Profile: "B", Timestamp: "2026-01-03T10:00:00Z", Action: "switch"},
+	}
+	writeTestEntries(t, dir, entries)
+
+	result, err := usage.AggregateStats(dir, "", "A")
+	if err != nil {
+		t.Fatalf("AggregateStats: %v", err)
+	}
+	if result.TotalSwitches != 2 {
+		t.Errorf("TotalSwitches = %d, want 2", result.TotalSwitches)
+	}
+	if len(result.Profiles) != 1 || result.Profiles[0].Name != "A" {
+		t.Errorf("Profiles = %v, want [{A, 2}]", result.Profiles)
+	}
+}
+
+// TestAggregateStats_SortedByCount verifies descending sort with alphabetical tiebreak.
+func TestAggregateStats_SortedByCount(t *testing.T) {
+	dir := t.TempDir()
+	entries := []usage.UsageEntry{
+		{Profile: "C", Timestamp: "2026-01-01T10:00:00Z", Action: "switch"},
+		{Profile: "A", Timestamp: "2026-01-02T10:00:00Z", Action: "switch"},
+		{Profile: "B", Timestamp: "2026-01-03T10:00:00Z", Action: "switch"},
+		{Profile: "A", Timestamp: "2026-01-04T10:00:00Z", Action: "switch"},
+	}
+	writeTestEntries(t, dir, entries)
+
+	result, err := usage.AggregateStats(dir, "", "")
+	if err != nil {
+		t.Fatalf("AggregateStats: %v", err)
+	}
+	// A=2, B=1, C=1 — tie between B and C, alphabetical: B before C
+	if len(result.Profiles) != 3 {
+		t.Fatalf("len(Profiles) = %d, want 3", len(result.Profiles))
+	}
+	if result.Profiles[0].Name != "A" {
+		t.Errorf("Profiles[0].Name = %q, want A", result.Profiles[0].Name)
+	}
+	if result.Profiles[1].Name != "B" {
+		t.Errorf("Profiles[1].Name = %q, want B", result.Profiles[1].Name)
+	}
+	if result.Profiles[2].Name != "C" {
+		t.Errorf("Profiles[2].Name = %q, want C", result.Profiles[2].Name)
+	}
+}
+
+// TestAggregateStats_EmptyFile verifies that no entries yields empty result.
+func TestAggregateStats_EmptyFile(t *testing.T) {
+	dir := t.TempDir()
+
+	result, err := usage.AggregateStats(dir, "", "")
+	if err != nil {
+		t.Fatalf("AggregateStats: %v", err)
+	}
+	if result.TotalSwitches != 0 {
+		t.Errorf("TotalSwitches = %d, want 0", result.TotalSwitches)
+	}
+	if len(result.Profiles) != 0 {
+		t.Errorf("len(Profiles) = %d, want 0", len(result.Profiles))
+	}
+}
+
+// TestFormatStats_Output verifies human-readable output format.
+func TestFormatStats_Output(t *testing.T) {
+	now := time.Now()
+	result := &usage.StatsResult{
+		TotalSwitches: 10,
+		Profiles: []usage.ProfileStats{
+			{
+				Name:     "work",
+				Switches: 8,
+				LastUsed: now.Add(-2 * time.Hour).Format(time.RFC3339),
+				Actions:  map[string]int{"switch": 8},
+			},
+			{
+				Name:     "personal",
+				Switches: 2,
+				LastUsed: now.Add(-30 * time.Minute).Format(time.RFC3339),
+				Actions:  map[string]int{"switch": 2},
+			},
+		},
+	}
+
+	out := usage.FormatStats(result, "")
+	if !strings.Contains(out, "work") {
+		t.Errorf("output missing 'work': %q", out)
+	}
+	if !strings.Contains(out, "personal") {
+		t.Errorf("output missing 'personal': %q", out)
+	}
+	if !strings.Contains(out, "switches") {
+		t.Errorf("output missing 'switches': %q", out)
+	}
+	if !strings.Contains(out, "all time") {
+		t.Errorf("output missing 'all time': %q", out)
+	}
+	if !strings.Contains(out, "10 switches") {
+		t.Errorf("output missing total '10 switches': %q", out)
 	}
 }
