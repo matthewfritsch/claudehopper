@@ -86,7 +86,7 @@ Plans:
 
 **Success Criteria** (what must be TRUE):
   1. Shell tab completions work in bash, zsh, fish, and powershell via `hop completion <shell>`
-  2. goreleaser produces both `hop` and `claudehopper` binaries for Linux/macOS/Windows on amd64 and arm64 from a single release workflow
+  2. goreleaser produces both `hop` and `claudehopper` binaries for Linux and macOS on amd64 and arm64 from a single release workflow (Windows excluded — renameio/v2 does not support atomic symlinks on Windows)
   3. `hop update` checks GitHub releases for a newer version with a 24-hour cached TTL and prints a non-blocking upgrade notice if one is available
 
 ## Progress
@@ -99,4 +99,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
 | 2. Core Profile Operations | 4/4 | Complete    | 2026-03-15 |
 | 3. Extended Features | 4/4 | Complete    | 2026-03-15 |
-| 4. Polish & Distribution | 2/2 | Complete   | 2026-03-15 |
+| 4. Polish & Distribution | 2/2 | Complete    | 2026-03-15 |
