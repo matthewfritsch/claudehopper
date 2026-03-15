@@ -78,11 +78,16 @@ Plans:
 **Goal**: The tool is releasable: versioned binaries for all platforms, shell completions verified, and update checking working
 **Depends on**: Phase 3
 **Requirements**: OPS-02, DIST-01, DIST-03
+**Plans:** 2 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Update checking package with 24h TTL cache and hop update command
+- [ ] 04-02-PLAN.md — Goreleaser finalization with Homebrew tap, release workflow, and shell completions verification
+
 **Success Criteria** (what must be TRUE):
   1. Shell tab completions work in bash, zsh, fish, and powershell via `hop completion <shell>`
   2. goreleaser produces both `hop` and `claudehopper` binaries for Linux/macOS/Windows on amd64 and arm64 from a single release workflow
   3. `hop update` checks GitHub releases for a newer version with a 24-hour cached TTL and prints a non-blocking upgrade notice if one is available
-**Plans**: TBD
 
 ## Progress
 
@@ -94,4 +99,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
 | 2. Core Profile Operations | 4/4 | Complete    | 2026-03-15 |
 | 3. Extended Features | 4/4 | Complete    | 2026-03-15 |
-| 4. Polish & Distribution | 0/TBD | Not started | - |
+| 4. Polish & Distribution | 0/2 | Not started | - |
