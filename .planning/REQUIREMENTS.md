@@ -34,9 +34,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### File Sharing
 
-- [ ] **SHAR-01**: User can symlink files between profiles (`hop share`)
-- [ ] **SHAR-02**: User can copy files between profiles independently (`hop pick`)
-- [ ] **SHAR-03**: User can materialize shared symlinks back to independent copies (`hop unshare`)
+- [x] **SHAR-01**: User can symlink files between profiles (`hop share`)
+- [x] **SHAR-02**: User can copy files between profiles independently (`hop pick`)
+- [x] **SHAR-03**: User can materialize shared symlinks back to independent copies (`hop unshare`)
 - [x] **SHAR-04**: New profiles automatically share default linked files (settings.json, settings.local.json, .mcp.json)
 
 ### Visualization & Analysis
@@ -103,9 +103,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-01 | Phase 1 | Complete |
 | SAFE-02 | Phase 2 | Complete |
 | SAFE-03 | Phase 1 | Complete |
-| SHAR-01 | Phase 3 | Pending |
-| SHAR-02 | Phase 3 | Pending |
-| SHAR-03 | Phase 3 | Pending |
+| SHAR-01 | Phase 3 | Complete |
+| SHAR-02 | Phase 3 | Complete |
+| SHAR-03 | Phase 3 | Complete |
 | SHAR-04 | Phase 2 | Complete |
 | VIZ-01 | Phase 3 | Complete |
 | VIZ-02 | Phase 3 | Complete |

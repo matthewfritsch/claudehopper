@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-extended-features 03-03-PLAN.md
-last_updated: "2026-03-15T00:53:28.465Z"
+stopped_at: Completed 03-extended-features-02-PLAN.md
+last_updated: "2026-03-15T00:54:29.385Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-core-profile-operations P04 | 3min | 2 tasks | 9 files |
 | Phase 03-extended-features P01 | 3min | 2 tasks | 5 files |
 | Phase 03-extended-features P03 | 6min | 2 tasks | 8 files |
+| Phase 03-extended-features P02 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,9 @@ Recent decisions affecting current work:
 - [Phase 03-extended-features]: configDir, _ = config.ConfigDir() pattern in cmd layer — usage tracking degrades silently if config dir unresolvable
 - [Phase 03-extended-features]: Cycle detection fallback in BuildTree picks alphabetically first node as root when all nodes are in a mutual cycle
 - [Phase 03-extended-features]: FormatDiff merges identical and different into single sorted Common section matching Python output format
+- [Phase 03-extended-features]: ShareFiles uses filepath.EvalSymlinks to prevent chained symlinks
+- [Phase 03-extended-features]: UnshareFiles with empty paths unshares all shared_paths — bulk materialization
+- [Phase 03-extended-features]: share/pick/unshare cmd commands re-link active profile via DoSwitch(Force:true) after manifest mutation
 
 ### Pending Todos
 
@@ -106,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T00:53:28.462Z
-Stopped at: Completed 03-extended-features 03-03-PLAN.md
+Last session: 2026-03-15T00:54:29.382Z
+Stopped at: Completed 03-extended-features-02-PLAN.md
 Resume file: None
