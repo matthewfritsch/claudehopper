@@ -13,7 +13,7 @@ claudehopper-go ports a working Python CLI tool to Go, delivering instant symlin
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Go module scaffold, Cobra CLI skeleton, atomic symlink engine, config/path resolution, and protected-paths enforcement (completed 2026-03-14)
-- [ ] **Phase 2: Core Profile Operations** - Full profile CRUD, switch with atomic replacement and safety features, manifest format compatibility with Python version
+- [x] **Phase 2: Core Profile Operations** - Full profile CRUD, switch with atomic replacement and safety features, manifest format compatibility with Python version (completed 2026-03-15)
 - [ ] **Phase 3: Extended Features** - File sharing, profile visualization, usage tracking, and the unmanage escape hatch
 - [ ] **Phase 4: Polish & Distribution** - Update checking, goreleaser dual-binary release, shell completions verification, and version injection
 
@@ -41,7 +41,7 @@ Plans:
 **Goal**: An existing Python claudehopper user can migrate and perform all daily profile management tasks with the Go binary
 **Depends on**: Phase 1
 **Requirements**: PROF-01, PROF-02, PROF-03, PROF-04, PROF-05, PROF-06, PROF-07, SWCH-01, SWCH-02, SWCH-03, SWCH-04, SWCH-05, SWCH-06, SAFE-02, SHAR-04
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 02-01-PLAN.md — Manifest CreatedFrom fix, profile name validation, and create logic (blank/from-current/from-profile) with shared defaults
@@ -85,6 +85,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-03-14 |
-| 2. Core Profile Operations | 3/4 | In Progress|  |
+| 2. Core Profile Operations | 4/4 | Complete   | 2026-03-15 |
 | 3. Extended Features | 0/TBD | Not started | - |
 | 4. Polish & Distribution | 0/TBD | Not started | - |

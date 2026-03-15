@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-03-15T00:11:20.818Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-03-15T00:16:45.603Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-core-profile-operations P01 | 35min | 2 tasks | 10 files |
 | Phase 02-core-profile-operations P02 | 5min | 2 tasks | 7 files |
 | Phase 02-core-profile-operations P03 | 3min | 2 tasks | 2 files |
+| Phase 02-core-profile-operations P04 | 3min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 02-core-profile-operations]: linkManagedPath uses os.Readlink on profile-dir symlinks to preserve shared-dir indirection through the switch
 - [Phase 02-core-profile-operations]: DoSwitch only removes symlinks from current profile (skips real files) — protects directly placed user files
 - [Phase 02-core-profile-operations]: backupPath uses os.Lstat not os.Stat — dangling symlinks occupy the backup slot
+- [Phase 02-core-profile-operations]: isInteractive() uses os.Stdin.Stat() + ModeCharDevice for TTY detection in cmd layer — no external dependency
+- [Phase 02-core-profile-operations]: Adopt prompt is a single bulk y/N for all unmanaged files — not per-file for UX simplicity
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T00:11:15.092Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-03-15T00:16:45.600Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
