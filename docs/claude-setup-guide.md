@@ -86,6 +86,7 @@ Verify that:
 
 ## Step 5: Show key commands
 
+### Profiles
 ```bash
 hop switch <name>                           # switch profiles
 hop status                                  # what's active
@@ -94,6 +95,16 @@ hop pick commands/ --from work --to personal   # copy a file
 hop diff work personal                      # compare profiles
 hop tree                                    # visual overview
 hop stats                                   # usage stats
+```
+
+### Sessions
+```bash
+hop sesh list                               # list sessions by project
+hop sesh info <id>                          # details about a session
+hop sesh resume <id>                        # print resume command (-x to exec)
+hop sesh titles                             # generate AI titles (cached, uses haiku)
+hop sesh prune --older-than 30d             # clean up old sessions
+hop sesh stats                              # session overview
 ```
 
 ## Notes

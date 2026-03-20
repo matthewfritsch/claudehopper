@@ -1,6 +1,6 @@
 # claudehopper-go
 
-Go CLI for managing Claude Code configuration profiles via symlink switching.
+Go CLI for managing Claude Code configuration profiles and sessions. Switch between different `~/.claude/` setups via symlinks; list, inspect, resume, and prune Claude Code sessions across projects.
 
 ## Architecture
 
@@ -9,8 +9,28 @@ Go CLI for managing Claude Code configuration profiles via symlink switching.
 - `internal/config/` — paths, config.json, manifest.go
 - `internal/fs/` — atomic symlinks (renameio/v2), protected paths
 - `internal/profile/` — all profile business logic (create, switch, share, tree, etc.)
+- `internal/session/` — Claude Code session scanning, pruning, and AI title generation
 - `internal/usage/` — usage.jsonl tracking
 - `internal/updater/` — GitHub release checking with 24h TTL
+
+## Key commands
+
+### Profiles
+- `hop create <name>` — create profile (blank, `--from-current`, `--from-profile`)
+- `hop switch <name>` — atomic symlink switch (`--dry-run`, `--force`)
+- `hop list` / `hop status` / `hop tree` — view profiles
+- `hop share` / `hop pick` / `hop unshare` — share or copy files between profiles
+- `hop diff <a> <b>` — compare profiles
+
+### Sessions (`hop sessions` / `hop sesh`)
+- `hop sesh list` — sessions grouped by project, with topic, age, size, git branch
+- `hop sesh info <id>` — detailed session view (supports ID prefix matching)
+- `hop sesh resume <id>` — print resume command (`-x` to exec directly)
+- `hop sesh titles` — generate short AI titles via `claude -p --model haiku` (cached)
+- `hop sesh prune --older-than 30d` — remove old sessions (`--dry-run` to preview)
+- `hop sesh stats` — aggregate overview
+
+Session data is read from `~/.claude/projects/{encoded-path}/{sessionId}.jsonl`. Title cache stored at `{CLAUDEHOPPER_HOME}/title-cache.json`.
 
 ## Conventions
 
@@ -18,6 +38,7 @@ Go CLI for managing Claude Code configuration profiles via symlink switching.
 - **os.Lstat** everywhere for symlink interrogation (never os.Stat).
 - **AtomicSymlink** for all symlink operations (never os.Remove + os.Symlink).
 - **Business logic in internal/, CLI wiring in cmd/** — cmd functions parse flags, call internal, format output.
+- **Explicit path parameters** — internal packages accept directory paths as function parameters. They never read env vars directly. Env var overrides (`CLAUDE_DIR`, `CLAUDEHOPPER_HOME`) are resolved in the CLI layer only (`cmd/helpers.go`, `internal/config/paths.go`).
 - **Protected paths** — see `internal/fs/protected.go`.
 - **Format compatibility** — config.json and .hop-manifest.json use stable JSON formats (2-space indent, trailing newline, sorted keys).
 - **Case-insensitive profile names** — normalized to lowercase.

@@ -95,6 +95,36 @@ hop unshare CLAUDE.md --profile personal
 
 By default, `settings.json`, `settings.local.json`, and `.mcp.json` are shared across all profiles automatically.
 
+### Session Management
+
+Browse, resume, and clean up Claude Code sessions across all your projects.
+
+```bash
+# List sessions grouped by project
+hop sesh list                              # grouped by project
+hop sesh list --flat                       # flat table view
+hop sesh list -p myproject                 # filter by project name
+
+# Inspect and resume
+hop sesh info <id>                         # detailed session view
+hop sesh resume <id>                       # print the resume command
+hop sesh resume <id> -x                    # exec directly into the session
+
+# AI-generated titles (cached, uses haiku)
+hop sesh titles                            # generate titles for all sessions
+hop sesh titles -p myproject               # only for one project
+hop sesh titles clear                      # clear the title cache
+
+# Pruning old sessions
+hop sesh prune --older-than 30d            # remove sessions older than 30 days
+hop sesh prune --older-than 2w --dry-run   # preview what would be deleted
+
+# Overview
+hop sesh stats                             # session count, disk usage, top projects
+```
+
+Session IDs support prefix matching — `hop sesh info fa4d` works if the prefix is unambiguous. Tab completion is available for session IDs after setting up shell completions.
+
 ### Maintenance
 
 ```bash
@@ -150,7 +180,11 @@ hop completion powershell | Out-String | Invoke-Expression
 
 ## For AI Agents
 
-If claudehopper is already installed and you're an AI agent helping the user manage profiles, run `hop status` to see the current state, then use `hop --help` and `hop <command> --help` for full usage. The key commands are `create`, `switch`, `share`, `pick`, and `tree`.
+If claudehopper is already installed and you're an AI agent helping the user:
+
+- **Profiles**: Run `hop status` to see the current state. Key commands: `create`, `switch`, `share`, `pick`, `tree`.
+- **Sessions**: Run `hop sesh list` to see recent sessions. Use `hop sesh info <id>` for details. Generate readable titles with `hop sesh titles`.
+- Use `hop --help` and `hop <command> --help` for full usage.
 
 ## Safety
 

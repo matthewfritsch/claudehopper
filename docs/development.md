@@ -94,3 +94,14 @@ CLAUDE_DIR=/tmp/test CLAUDEHOPPER_HOME=/tmp/test-hopper hop list
 # UNSAFE: touches real config
 hop create test --from-current  # DO NOT do this during development
 ```
+
+### Session commands
+
+Session commands (`hop sesh`) are **read-only** except for `prune` (deletes session files) and `titles` (writes to title cache). They read from `CLAUDE_DIR/projects/` and write the title cache to `CLAUDEHOPPER_HOME/title-cache.json`.
+
+The `internal/session/` package follows the same pattern as other internal packages: all functions accept explicit directory paths. The CLI layer (`cmd/sessions.go`) resolves `claudeDir()` and `config.ConfigDir()` before calling into the package.
+
+When adding new session features:
+- Scanning functions take `claudeDir string` as first param
+- Title cache functions take `configDir string` as first param
+- Keep `cmd/sessions.go` as a single file — all session subcommands live there
