@@ -19,3 +19,7 @@ hop
 # OS
 .DS_Store
 Thumbs.db
+
+# AI
+.omc/
+.planning/
